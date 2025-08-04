@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Link, useNavigate } from "react-router-dom";
 import { validateEmail } from "../../utils/auth/auth";
@@ -14,6 +14,7 @@ import {
   AuthLink,
   ErrorMessage,
 } from "../../components/auth/AuthCard";
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 const AuthForm = styled(BaseAuthForm)`
   gap: 0;
@@ -103,48 +104,77 @@ export default function LoginPage() {
   const isEmailValid = validateEmail(email);
   const { login: authLogin } = useAuth();
 
+  const { executeRecaptcha } = useGoogleReCaptcha();
+  const [isRecaptchaReady, setIsRecaptchaReady] = useState(false);
+
+  useEffect(() => {
+    // executeRecaptcha 함수가 준비되면 상태를 true로 변경
+    if (executeRecaptcha) {
+      setIsRecaptchaReady(true);
+    }
+  }, [executeRecaptcha]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("handleSubmit 함수가 호출되었습니다.");
+
+    if (!isRecaptchaReady || !executeRecaptcha) {
+      // alert()를 setError로 변경
+      setError('reCAPTCHA 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+      setLoading(false);
+      return;
+    }
+    console.log('reCAPTCHA가 준비되었습니다.');
+
     setError("");
     setLoading(true);
+
     try {
       if (!isEmailValid) throw new Error("올바른 이메일 형식을 입력해주세요.");
 
+      const recaptchaToken = await executeRecaptcha('login_submit');
+      // console.log('생성된 reCAPTCHA 토큰:', recaptchaToken);
+
+      if (!recaptchaToken) {
+        throw new Error("reCAPTCHA 인증에 실패했습니다. 다시 시도해주세요.");
+      }
+
       const baseURL = process.env.REACT_APP_API_URL || "https://localhost:8443";
+      // console.log('로그인 요청 전송:', {
+      //   url: `${baseURL}/api/auth/login`,
+      //   data: { email, password, recaptchaToken }
+      // });
+
       const response = await axios.post(`${baseURL}/api/auth/login`, {
         email,
         password,
+        recaptchaToken,
       });
 
-      const apiResponseData = response.data; // { success: true, message: "...", data: { ... } }
-
-      if (apiResponseData && apiResponseData.success && apiResponseData.data) {
-        const userData = apiResponseData.data; // { loginId, role, email, userId, username, phone, createdAt, token }
-
-        authLogin(userData.nickname, userData.role, userData.token); // authLogin 함수에 맞게 필드 이름 수정
+      // --- 로그인 성공 시 추가된 로직 ---
+      // console.log('로그인 성공 응답:', response.data);
+      const loginData = response.data.data;
+      if (loginData && loginData.token) {
+        // authLogin 함수를 3개의 인자를 받도록 수정
+        authLogin(loginData.nickname, loginData.role, loginData.token);
         navigate("/");
       } else {
-        // 서버에서 성공은 아니지만 응답은 있는 경우 (예: success: false)
-        setError(
-          apiResponseData.message ||
-            "로그인에 실패했습니다. 다시 시도해 주세요."
-        );
+        throw new Error("로그인 응답 형식이 올바르지 않습니다.");
       }
+      // --- 추가된 로직 끝 ---
+
     } catch (err: any) {
-      // Axios 에러 처리 (네트워크 오류, 4xx/5xx 응답 등)
-      if (axios.isAxiosError(err) && err.response) {
-        setError(
-          err.response.data?.message || "로그인에 실패했습니다. 서버 응답 오류."
-        );
-        console.error("Login Error Response:", err.response); // 에러 응답 디버깅
-      } else {
-        setError(err.message || "알 수 없는 오류가 발생했습니다.");
-        console.error("Login Error:", err); // 기타 에러 디버깅
-      }
+      console.error("로그인 에러:", err.response ? err.response.data : err.message);
+      // alert()를 setError로 변경
+      const errorMessage = err.response && err.response.data && err.response.data.message
+        ? err.response.data.message
+        : "로그인 중 알 수 없는 오류가 발생했습니다.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <AuthCard title="FeedShop" subtitle="스마트한 쇼핑 경험을 위한 최고의 선택">
@@ -208,7 +238,8 @@ export default function LoginPage() {
 
         <SocialLoginButton
           type="button"
-          onClick={() => alert("구글 로그인 연동 필요")}
+          // alert() 대신 console.log로 변경
+          onClick={() => console.log("구글 로그인 연동 필요")}
         >
           <i className="fab fa-google" style={{ color: "#DB4437" }}></i>
           구글로 로그인
@@ -216,7 +247,8 @@ export default function LoginPage() {
 
         <SocialLoginButton
           type="button"
-          onClick={() => alert("카카오 로그인 연동 필요")}
+          // alert() 대신 console.log로 변경
+          onClick={() => console.log("카카오 로그인 연동 필요")}
         >
           <i className="fas fa-comment" style={{ color: "#FEE500" }}></i>
           카카오로 로그인

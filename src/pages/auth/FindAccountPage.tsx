@@ -12,24 +12,40 @@ import {
   ErrorMessage,
 } from "../../components/auth/AuthCard";
 
+// UserResponse 객체의 타입을 정의합니다.
+// 이 타입은 백엔드 API에서 반환하는 데이터 구조와 일치해야 합니다.
+interface UserResponse {
+  userId: number;
+  username: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  message?: string;
+}
+
+// 새로운 컴포넌트를 위한 Styled-Component (AuthCard.js에 추가되어 있다고 가정)
+// const AccountList = styled.ul`...`
+// const AccountItem = styled.li`...`
+
+// 백엔드 API 변경에 따라 프론트엔드 코드를 수정합니다.
 export default function FindAccountPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // 찾은 계정 목록을 저장할 새로운 상태를 UserResponse[] 타입으로 추가합니다.
+  const [foundAccounts, setFoundAccounts] = useState<UserResponse[]>([]);
 
-  // 휴대폰 번호 포맷팅 함수
+  // 휴대폰 번호 포맷팅 함수 (변경 없음)
   const formatPhoneNumber = (value: string) => {
-    // 숫자만 추출
     const numbers = value.replace(/[^\d]/g, "");
-
-    // 11자리 초과 시 자르기
     if (numbers.length > 11) {
-      return phone; // 기존 값 유지
+      return phone;
     }
-
-    // 010-XXXX-XXXX 형식으로 포맷팅
     if (numbers.length <= 3) {
       return numbers;
     } else if (numbers.length <= 7) {
@@ -41,13 +57,13 @@ export default function FindAccountPage() {
     }
   };
 
-  // 휴대폰 번호 유효성 검사
+  // 휴대폰 번호 유효성 검사 (변경 없음)
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneRegex = /^010-\d{4}-\d{4}$/;
     return phoneRegex.test(phoneNumber);
   };
 
-  // 이름 유효성 검사
+  // 이름 유효성 검사 (변경 없음)
   const validateName = (name: string) => {
     const nameRegex = /^[가-힣]{2,10}$/;
     return nameRegex.test(name);
@@ -62,8 +78,8 @@ export default function FindAccountPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setFoundAccounts([]); // 검색 시마다 목록 초기화
 
-    // 입력 유효성 검사
     if (!validateName(name)) {
       setIsSuccess(false);
       setMessage("이름은 2-10자의 한글만 입력 가능합니다.");
@@ -79,7 +95,6 @@ export default function FindAccountPage() {
     }
 
     try {
-      // API 연동 - /find-account 엔드포인트 호출 (axios 사용)
       const baseURL = process.env.REACT_APP_API_URL || "https://localhost:8443";
       const response = await axios.get(`${baseURL}/api/auth/find-account`, {
         params: {
@@ -87,33 +102,36 @@ export default function FindAccountPage() {
           phoneNumber: phone,
         },
       });
-      console.log(response);
 
-      // 성공 응답 처리
-      setIsSuccess(true);
+      // API 응답 데이터가 배열임을 가정하고 처리
       const apiResponse = response.data;
-      const userData = apiResponse.data;
+      const accountsList = apiResponse.data as UserResponse[]; // 타입 단언 추가
 
-      setMessage(
-        `입력하신 정보로 가입된 이메일 주소는 '${
-          userData.email || userData.maskedEmail
-        }' 입니다.`
-      );
+      if (accountsList && accountsList.length > 0) {
+        setIsSuccess(true);
+        setFoundAccounts(accountsList); // 찾은 계정 목록을 상태에 저장
+
+        // 메시지는 계정 수에 따라 다르게 설정
+        if (accountsList.length === 1) {
+            setMessage(`입력하신 정보로 가입된 이메일 주소는 '${accountsList[0].email}' 입니다.`);
+        } else {
+            setMessage(`입력하신 정보로 여러 개의 계정이 발견되었습니다.`);
+        }
+      } else {
+          // 백엔드에서 예외를 던지지 않고 빈 배열을 반환할 경우를 대비
+          setIsSuccess(false);
+          setMessage("입력하신 정보와 일치하는 계정을 찾을 수 없습니다.");
+      }
     } catch (error: any) {
       setIsSuccess(false);
-
-      // axios 에러 처리
       if (error.response) {
-        // 서버에서 응답을 받았지만 에러 상태코드
         const errorMessage =
           error.response.data?.message ||
           "입력하신 정보와 일치하는 계정을 찾을 수 없습니다.";
         setMessage(errorMessage);
       } else if (error.request) {
-        // 요청은 보냈지만 응답을 받지 못함
         setMessage("서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.");
       } else {
-        // 요청 설정 중 에러 발생
         setMessage("요청 처리 중 오류가 발생했습니다.");
       }
     } finally {
@@ -124,13 +142,30 @@ export default function FindAccountPage() {
   return (
     <AuthCard title="계정 찾기" subtitle="가입 시 입력한 정보를 입력해주세요">
       <AuthForm onSubmit={handleSubmit}>
-        {message &&
-          (isSuccess ? (
+        {/* 메시지 렌더링 로직은 그대로 유지 */}
+        {message && (
+          isSuccess ? (
             <SuccessMessage>{message}</SuccessMessage>
           ) : (
             <ErrorMessage>{message}</ErrorMessage>
-          ))}
+          )
+        )}
+        
+        {/* 여러 계정이 발견되었을 경우 목록을 렌더링 */}
+        {isSuccess && foundAccounts.length > 1 && (
+            <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700">다음 중 본인의 계정을 선택하세요:</p>
+                <ul className="mt-2 space-y-2">
+                    {foundAccounts.map((account) => (
+                        <li key={account.userId} className="bg-gray-100 p-3 rounded-lg text-sm text-gray-800">
+                            <strong>이메일:</strong> {account.email}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
 
+        {/* 폼 입력 필드와 버튼 */}
         <AuthFormGroup>
           <AuthLabel htmlFor="name">이름</AuthLabel>
           <AuthInput

@@ -9,7 +9,9 @@ import theme from "./theme";
 // 보호 라우트 컴포넌트 임포트
 import SellerProtectedRoute from "./components/SellerProtectedRoute";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import UserProtectedRoute from "./components/UserProtectedRoute";
+
 
 // 페이지 컴포넌트들
 const HomePage = lazy(() => import("./pages/common/HomePage"));
@@ -64,9 +66,20 @@ const EventResultPage = lazy(() => import("./pages/event/EventResultPage"));
 const BecomeSellerPage = lazy(() => import("./pages/seller/BecomeSellerPage"));
 const SellerMyPage = lazy(() => import("./pages/seller/SellerMyPage"));
 
+const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || '';
+
+// reCAPTCHA 키가 설정되었는지 확인
+if (!RECAPTCHA_SITE_KEY) {
+  // 개발 환경에서만 경고를 띄웁니다.
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('reCAPTCHA site key is not defined. Please check your .env file.');
+  }
+}
+
 const App: FC = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+     <ThemeProvider theme={theme}>
       <AuthProvider>
         <ScrollToTop />
         <Suspense fallback={<div>로딩중...</div>}>
@@ -80,10 +93,8 @@ const App: FC = () => {
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-
               {/* 최근 본 상품 (모든 사용자 접근 가능) */}
               <Route path="/recentview" element={<RecentViewPage />} />
-
               {/* USER 권한 필요 페이지들 */}
               <Route path="/cart" element={<CartPage />} />
               <Route path="/payment" element={<PaymentPage />} />
@@ -292,17 +303,17 @@ const App: FC = () => {
                 }
               />
             </Route>
-
-            {/* Layout 없이 보여야 하는 페이지들 */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/find-account" element={<FindAccountPage />} />
-            <Route path="/find-password" element={<FindPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-          </Routes>
-        </Suspense>
-      </AuthProvider>
-    </ThemeProvider>
+              {/* Layout 없이 보여야 하는 페이지들 */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/find-account" element={<FindAccountPage />} />
+              <Route path="/find-password" element={<FindPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </ThemeProvider>
+    </GoogleReCaptchaProvider>
   );
 };
 

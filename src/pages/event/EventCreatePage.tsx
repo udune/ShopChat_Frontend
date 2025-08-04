@@ -4,6 +4,21 @@ import { useAuth } from "../../contexts/AuthContext";
 import axiosInstance from "../../api/axios";
 import { EventType } from "../../types/types";
 
+// Add global styles for animation
+const style = document.createElement('style');
+style.textContent = `
+@keyframes fadeInOut {
+0% { opacity: 0; transform: translateY(-10px); }
+10% { opacity: 1; transform: translateY(0); }
+90% { opacity: 1; transform: translateY(0); }
+100% { opacity: 0; transform: translateY(-10px); }
+}
+.animate-fade-in-out {
+animation: fadeInOut 3s ease-in-out forwards;
+}
+`;
+document.head.appendChild(style);
+
 // 백엔드 EventCreateRequestDto.EventRewardRequestDto와 일치하는 타입
 interface EventRewardRequestDto {
   conditionValue: string;
@@ -61,6 +76,7 @@ const EventCreatePage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 도움말 표시 상태
   const [showHelp, setShowHelp] = useState({
@@ -322,10 +338,9 @@ const EventCreatePage = () => {
         },
       });
 
-      showToastMessage("이벤트가 성공적으로 생성되었습니다! 이벤트 목록 페이지로 이동합니다.", 'success');
-      
-      // 성공 후 이벤트 목록 페이지로 이동 (토스트 메시지가 보인 후)
+      setShowSuccessModal(true);
       setTimeout(() => {
+        setShowSuccessModal(false);
         navigate("/events");
       }, 2000);
 
@@ -367,25 +382,40 @@ const EventCreatePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-6 shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
             이벤트 생성
           </h1>
-          <p className="text-gray-600">
-            새로운 이벤트를 생성해주세요.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            새로운 이벤트를 생성하여 사용자들과 특별한 경험을 만들어보세요
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* 기본 정보 */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">기본 정보</h2>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                기본 정보
+              </h2>
+            </div>
             
             {/* 이벤트 제목 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                 이벤트 제목 *
               </label>
               <input
@@ -393,51 +423,58 @@ const EventCreatePage = () => {
                 name="title"
                 value={eventForm.title}
                 onChange={handleChange}
-                placeholder="이벤트 제목을 입력하세요"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="매력적인 이벤트 제목을 입력하세요"
+                className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white"
                 maxLength={100}
               />
             </div>
 
             {/* 이벤트 타입 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></span>
                 이벤트 유형 *
               </label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {(["BATTLE", "MISSION", "MULTIPLE"] as EventType[]).map((type) => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => handleTypeSelect(type)}
-                    className={`p-6 border-2 rounded-xl text-center transition-all duration-200 hover:shadow-md ${
+                    className={`group relative p-8 border-2 rounded-2xl text-center transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 ${
                       eventForm.type === type
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-lg'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-lg ring-4 ring-blue-500/20'
+                        : 'border-gray-200 hover:border-blue-300 bg-white hover:bg-blue-50/50'
                     }`}
                   >
-                    <div className="mb-3">
+                    <div className="mb-4">
                       {type === "BATTLE" && (
-                        <svg className="w-12 h-12 mx-auto text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <div className="w-16 h-16 mx-auto bg-red-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
                       )}
                       {type === "MISSION" && (
-                        <svg className="w-12 h-12 mx-auto text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
+                        <div className="w-16 h-16 mx-auto bg-green-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                        </div>
                       )}
                       {type === "MULTIPLE" && (
-                        <svg className="w-12 h-12 mx-auto text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
+                        <div className="w-16 h-16 mx-auto bg-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
                       )}
                     </div>
-                    <div className="font-bold text-lg mb-2">{getTypeText(type)}</div>
-                    <div className="text-sm text-gray-600">
-                      {type === "BATTLE" && "1:1 스타일 대결"}
-                      {type === "MISSION" && "주어진 미션 수행"}
-                      {type === "MULTIPLE" && "다수 참여 이벤트"}
+                    <div className="font-bold text-xl mb-3">{getTypeText(type)}</div>
+                    <div className="text-sm text-gray-600 leading-relaxed">
+                      {type === "BATTLE" && "1:1 스타일 대결로 승부를 가려요"}
+                      {type === "MISSION" && "주어진 미션을 수행하여 보상을 받아요"}
+                      {type === "MULTIPLE" && "다수 참여로 더 큰 보상을 경쟁해요"}
                     </div>
                   </button>
                 ))}
@@ -445,45 +482,59 @@ const EventCreatePage = () => {
             </div>
 
             {/* 이벤트 설명 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                 이벤트 설명 *
               </label>
               <textarea
                 name="description"
                 value={eventForm.description}
                 onChange={handleChange}
-                placeholder="이벤트에 대한 상세한 설명을 입력하세요"
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                placeholder="이벤트의 매력과 참여 방법을 상세히 설명해주세요"
+                rows={5}
+                className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white resize-none"
                 maxLength={1000}
               />
-              <div className="text-right text-sm text-gray-500 mt-1">
-                {eventForm.description.length}/1000
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-gray-500">참여자들이 이벤트에 관심을 가질 수 있도록 매력적으로 작성해주세요</span>
+                <span className="text-sm font-medium text-gray-600">
+                  {eventForm.description.length}/1000
+                </span>
               </div>
             </div>
           </div>
 
           {/* 날짜 정보 */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">날짜 정보</h2>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                날짜 정보
+              </h2>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* 구매 기간 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                   구매 시작일 *
                 </label>
-                <div className="relative">
+                <div className="relative group">
                   <input
                     type="datetime-local"
                     name="purchaseStartDate"
                     value={eventForm.purchaseStartDate}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-6 py-4 pr-12 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300 bg-white group-hover:border-green-300"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <svg className="h-6 w-6 text-gray-400 group-hover:text-green-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -584,13 +635,13 @@ const EventCreatePage = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   참여 방법 *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowHelp(prev => ({ ...prev, participationMethod: !prev.participationMethod }))}
-                  className="text-blue-500 text-sm hover:text-blue-700"
-                >
-                  도움말
-                </button>
+                                 <button
+                   type="button"
+                   onClick={() => setShowHelp(prev => ({ ...prev, participationMethod: !prev.participationMethod }))}
+                   className="text-blue-500 text-sm hover:text-blue-700 active:text-blue-800 transition-colors duration-200 active:scale-95 transform"
+                 >
+                   도움말
+                 </button>
               </div>
               {showHelp.participationMethod && (
                 <div className="mb-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
@@ -613,13 +664,13 @@ const EventCreatePage = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   선정 기준 *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowHelp(prev => ({ ...prev, selectionCriteria: !prev.selectionCriteria }))}
-                  className="text-blue-500 text-sm hover:text-blue-700"
-                >
-                  도움말
-                </button>
+                                 <button
+                   type="button"
+                   onClick={() => setShowHelp(prev => ({ ...prev, selectionCriteria: !prev.selectionCriteria }))}
+                   className="text-blue-500 text-sm hover:text-blue-700 active:text-blue-800 transition-colors duration-200 active:scale-95 transform"
+                 >
+                   도움말
+                 </button>
               </div>
               {showHelp.selectionCriteria && (
                 <div className="mb-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
@@ -642,13 +693,13 @@ const EventCreatePage = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   주의사항 *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowHelp(prev => ({ ...prev, precautions: !prev.precautions }))}
-                  className="text-blue-500 text-sm hover:text-blue-700"
-                >
-                  도움말
-                </button>
+                                 <button
+                   type="button"
+                   onClick={() => setShowHelp(prev => ({ ...prev, precautions: !prev.precautions }))}
+                   className="text-blue-500 text-sm hover:text-blue-700 active:text-blue-800 transition-colors duration-200 active:scale-95 transform"
+                 >
+                   도움말
+                 </button>
               </div>
               {showHelp.precautions && (
                 <div className="mb-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
@@ -692,15 +743,15 @@ const EventCreatePage = () => {
                   <h3 className="text-lg font-medium text-gray-900">
                     {index + 1}등 보상
                   </h3>
-                  {eventForm.rewards.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeReward(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      삭제
-                    </button>
-                  )}
+                                     {eventForm.rewards.length > 1 && (
+                     <button
+                       type="button"
+                       onClick={() => removeReward(index)}
+                       className="text-red-500 hover:text-red-700 active:text-red-800 transition-colors duration-200 active:scale-95 transform"
+                     >
+                       삭제
+                     </button>
+                   )}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -733,12 +784,15 @@ const EventCreatePage = () => {
               </div>
             ))}
             
-            <button
-              type="button"
-              onClick={addReward}
-              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
-            >
-              + 보상 추가
+                         <button
+               type="button"
+               onClick={addReward}
+               className="w-full py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:bg-blue-100 active:scale-95 transition-all duration-300 font-semibold flex items-center justify-center gap-2"
+             >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              보상 추가
             </button>
           </div>
 
@@ -754,12 +808,12 @@ const EventCreatePage = () => {
                 className="hidden"
                 id="event-image"
               />
-              <label
-                htmlFor="event-image"
-                className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer"
-              >
-                이미지 선택
-              </label>
+                             <label
+                 htmlFor="event-image"
+                 className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 active:bg-blue-700 active:scale-95 transition-all duration-200 cursor-pointer transform"
+               >
+                 이미지 선택
+               </label>
               <p className="text-sm text-gray-500 mt-2">
                 JPG, PNG, GIF 파일만 업로드 가능합니다.
               </p>
@@ -774,51 +828,112 @@ const EventCreatePage = () => {
                     alt="이벤트 이미지 미리보기"
                     className="w-64 h-48 object-cover rounded-lg"
                   />
-                  <button
-                    type="button"
-                    onClick={handleImageRemove}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                  >
-                    ×
-                  </button>
+                                     <button
+                     type="button"
+                     onClick={handleImageRemove}
+                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 active:bg-red-700 active:scale-95 transition-all duration-200 transform"
+                   >
+                     ×
+                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 제출 버튼 */}
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/events')}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  생성 중...
-                </>
-              ) : (
-                '이벤트 생성'
-              )}
-            </button>
-          </div>
+                     {/* 제출 버튼 */}
+           <div className="flex justify-center gap-4 pt-8">
+             <button
+               type="button"
+               onClick={() => navigate('/events')}
+               className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-all duration-200 font-medium active:scale-95 transform hover:shadow-md rounded-lg border border-gray-300 hover:border-gray-400 active:bg-gray-100"
+             >
+               취소
+             </button>
+             <button
+               type="submit"
+               disabled={isLoading}
+               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium active:scale-95 transform hover:shadow-lg active:shadow-xl"
+             >
+               {isLoading ? (
+                 <>
+                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                   생성 중...
+                 </>
+               ) : (
+                 <>
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                   </svg>
+                   이벤트 생성
+                 </>
+               )}
+             </button>
+           </div>
         </form>
       </div>
 
       {/* 토스트 메시지 */}
       {showToast && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg animate-fade-in-out ${
-          toastType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        <div className={`fixed top-6 right-6 z-50 p-6 rounded-2xl shadow-2xl animate-fade-in-out ${
+          toastType === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
         }`}>
-          {toastMessage}
+          <div className="flex items-center gap-3">
+            {toastType === 'success' ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="font-semibold">{toastMessage}</span>
+          </div>
+                 </div>
+       )}
+
+       {/* 플로팅 액션 버튼 */}
+       <div className="fixed bottom-8 right-8 z-40">
+         <button
+           onClick={() => navigate('/events')}
+           className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 transform group cursor-pointer flex items-center justify-center"
+           title="이벤트 목록으로 이동"
+         >
+           <svg className="w-8 h-8 text-white group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 12H5m7 7l-7-7 7-7" />
+           </svg>
+         </button>
+       </div>
+
+       {/* 성공 팝업창 */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">이벤트 생성 완료!</h3>
+              <p className="text-gray-600 mb-6">
+                새로운 이벤트가 성공적으로 생성되었습니다.
+              </p>
+              <div className="flex justify-center">
+                                 <button
+                   onClick={() => {
+                     setShowSuccessModal(false);
+                     navigate('/events');
+                   }}
+                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 active:scale-95 transition-all duration-200 font-medium transform"
+                 >
+                   이벤트 목록으로 이동
+                 </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -21,22 +21,22 @@ import {
 
 // 결제 데이터 구조 정의
 interface PaymentData {
-  items: any[];                    // 결제할 상품 목록
-  shippingInfo: any;               // 배송 및 결제 정보
-  selectedMethod: string;          // 선택된 결제 수단
-  usePoint: boolean;               // 포인트 사용 여부
-  usedPoints: number;              // 사용할 포인트
-  isAgree: boolean;                // 약관 동의 여부
-  availablePoints: number;         // 사용 가능한 포인트
-  isDirectOrder: boolean;          // 바로 주문 여부
+  items: any[]; // 결제할 상품 목록
+  shippingInfo: any; // 배송 및 결제 정보
+  selectedMethod: string; // 선택된 결제 수단
+  usePoint: boolean; // 포인트 사용 여부
+  usedPoints: number; // 사용할 포인트
+  isAgree: boolean; // 약관 동의 여부
+  availablePoints: number; // 사용 가능한 포인트
+  isDirectOrder: boolean; // 바로 주문 여부
 }
 
 // 훅에 전달받을 props 타입 정의
 interface UsePaymentActionsProps {
-  paymentData: PaymentData;                        // 결제 데이터
-  setUsedPoints: (points: number) => void;         // 사용할 포인트 설정 함수
-  setIsProcessing: (processing: boolean) => void;  // 처리 상태 설정 함수
-  onError: (message: string) => void;              // 에러 처리 콜백 함수
+  paymentData: PaymentData; // 결제 데이터
+  setUsedPoints: (points: number) => void; // 사용할 포인트 설정 함수
+  setIsProcessing: (processing: boolean) => void; // 처리 상태 설정 함수
+  onError: (message: string) => void; // 에러 처리 콜백 함수
 }
 
 export const usePaymentActions = ({
@@ -58,21 +58,21 @@ export const usePaymentActions = ({
       (sum, item) => sum + item.discountPrice * item.quantity,
       0
     );
-    
+
     // 5만원 이상 무료배송, 미만시 3000원
     const deliveryFee = productTotal >= 50000 ? 0 : 3000;
-    
+
     // 포인트 사용 여부에 따른 사용 포인트 계산
     const pointsToUse = paymentData.usePoint ? paymentData.usedPoints : 0;
-    
+
     // 최종 결제 금액 = 상품가 + 배송비 - 포인트
     const finalAmount = productTotal + deliveryFee - pointsToUse;
 
     return {
-      productTotal,    // 상품 총가격
-      deliveryFee,     // 배송비
-      finalAmount,     // 최종 결제 금액
-      usedPoints: pointsToUse,  // 사용할 포인트
+      productTotal, // 상품 총가격
+      deliveryFee, // 배송비
+      finalAmount, // 최종 결제 금액
+      usedPoints: pointsToUse, // 사용할 포인트
     };
   };
 
@@ -87,12 +87,19 @@ export const usePaymentActions = ({
 
     const numValue = parseInt(value) || 0;
 
+    // 보유 포인트가 부족한지 검사한다.
+    if (numValue > paymentData.availablePoints) {
+      onError("보유한 포인트가 부족합니다.");
+      return;
+    }
+
     // 100원 단위 사용 제한 검사 (0원은 예외)
     if (numValue % 100 !== 0 && numValue !== 0) {
       onError("포인트는 100원 단위로만 사용 가능합니다.");
       return;
     }
 
+    // calculateTotals() 여기서
     const totals = calculateTotals();
     // 최대 사용 가능 포인트: 상품 총가의 10%
     const maxUsablePoints = Math.floor(totals.productTotal * 0.1);
@@ -102,12 +109,6 @@ export const usePaymentActions = ({
       onError(
         `포인트는 구매금액의 10%인 ${maxUsablePoints.toLocaleString()}원까지만 사용 가능합니다.`
       );
-      return;
-    }
-
-    // 보유 포인트 부족 검사
-    if (numValue > paymentData.availablePoints) {
-      onError("보유한 포인트가 부족합니다.");
       return;
     }
 
@@ -237,8 +238,8 @@ export const usePaymentActions = ({
         postalCode: shippingInfo.zipcode,
         recipientName: shippingInfo.name,
         recipientPhone: shippingInfo.phone,
-        usedPoints: usePoint ? usedPoints : 0,        // 포인트 사용 여부에 따라 0 또는 사용할 포인트
-        deliveryMessage: getFinalDeliveryRequest(),   // 최종 배송 요청사항 결정
+        usedPoints: usePoint ? usedPoints : 0, // 포인트 사용 여부에 따라 0 또는 사용할 포인트
+        deliveryMessage: getFinalDeliveryRequest(), // 최종 배송 요청사항 결정
         deliveryFee: totals.deliveryFee,
         paymentMethod: selectedMethod,
         // 카드 결제인 경우에만 카드 정보 포함
@@ -246,7 +247,7 @@ export const usePaymentActions = ({
           selectedMethod === "카드" ? shippingInfo.cardNumber : undefined,
         cardExpiry:
           selectedMethod === "카드"
-            ? shippingInfo.cardExpiry.replace("/", "")  // MM/YY → MMYY 형식으로 변환
+            ? shippingInfo.cardExpiry.replace("/", "") // MM/YY → MMYY 형식으로 변환
             : undefined,
         cardCvc: selectedMethod === "카드" ? shippingInfo.cardCvv : undefined,
       };
@@ -277,9 +278,9 @@ export const usePaymentActions = ({
 
   // 모든 결제 관련 함수들을 반환
   return {
-    calculateTotals,       // 총 금액 계산 함수
-    handlePointsChange,    // 포인트 입력 처리 함수
-    handleUseAllPoints,    // 전체 포인트 사용 함수
-    handlePayment,         // 최종 결제 처리 함수
+    calculateTotals, // 총 금액 계산 함수
+    handlePointsChange, // 포인트 입력 처리 함수
+    handleUseAllPoints, // 전체 포인트 사용 함수
+    handlePayment, // 최종 결제 처리 함수
   };
 };

@@ -31,3 +31,44 @@ code {
   --success-color: #52c41a;
   --warning-color: #faad14;
 }
+
+/* 애니메이션 */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}
+
+.animate-fade-in-out {
+  animation: fadeInOut 3s ease-in-out;
+}
+
+/* 글래스모피즘 효과 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* 호버 효과 */
+.hover-lift {
+  transition: all 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
