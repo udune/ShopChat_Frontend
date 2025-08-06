@@ -842,6 +842,7 @@ const Header: FC<HeaderProps> = ({ onMenuClick }) => {
     navigate("/");
   };
 
+  // 카테고리 모달 열기 핸들러
   const handleCategoryClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsCategoryModalOpen(true);
@@ -863,110 +864,105 @@ const Header: FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <>
-      <HeaderContainer>
-        <MenuButton onClick={onMenuClick} aria-label="메뉴 열기">
-          <i className="fas fa-bars"></i>
-        </MenuButton>
-        <Logo to="/">FeedShop</Logo>
-        <Nav>
-          <NavLink to="/products">
+    <HeaderContainer>
+      <MenuButton onClick={onMenuClick} aria-label="메뉴 열기">
+        <i className="fas fa-bars"></i>
+      </MenuButton>
+      <Logo to="/">FeedShop</Logo>
+      <Nav>
+        <NavLink to="/products">
+          <i className="fas fa-shopping-bag" style={{ marginRight: "8px" }}></i>
+          상품
+        </NavLink>
+        <CategoryButton onClick={handleCategoryClick} type="button">
+          <i className="fas fa-th-large" style={{ marginRight: "8px" }}></i>
+          카테고리
+        </CategoryButton>
+        <NavLink to="/event-list">
+          <i className="fas fa-gift" style={{ marginRight: "8px" }}></i>
+          이벤트
+        </NavLink>
+      </Nav>
+
+      <SearchSection>
+        <SearchContainer>
+          <SearchInput
+            type="text"
+            placeholder="검색어를 입력하세요"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <SearchButton type="submit" onClick={handleSearch}>
+            <MagnifyingGlassIcon />
+          </SearchButton>
+        </SearchContainer>
+      </SearchSection>
+
+      <UserSection>
+        <CartLink to="/cart">
+          <i className="fas fa-shopping-cart"></i>
+          <span>장바구니</span>
+        </CartLink>
+        {user && user.nickname && user.nickname.trim() !== "" ? (
+          <UserMenu ref={userMenuRef}>
+            <UserInfo onClick={() => setShowUserMenu(!showUserMenu)}>
+              <UserAvatar>{getInitials(user.nickname)}</UserAvatar>
+              <UserName>{user.nickname}님</UserName>
+            </UserInfo>
+            {showUserMenu && (
+              <DropdownMenu>
+                {user && user.userType === "admin" ? (
+                  <DropdownItem to="/admin/dashboard">
+                    <i className="fas fa-chart-line"></i>
+                    관리자 대시보드
+                  </DropdownItem>
+                ) : (
+                  <DropdownItem
+                    to={
+                      user && user.userType === "seller"
+                        ? "/seller-mypage"
+                        : "/mypage"
+                    }
+                  >
+                    <i className="fas fa-user"></i>
+                    마이페이지
+                  </DropdownItem>
+                )}
+                {user && user.userType !== "admin" && (
+                  <DropdownItem to="/profile-settings">
+                    <i className="fas fa-cog"></i>
+                    프로필 관리
+                  </DropdownItem>
+                )}
+                {user && user.userType === "user" && (
+                  <DropdownItem to="/become-seller">
+                    <i className="fas fa-store"></i>
+                    판매자 전환
+                  </DropdownItem>
+                )}
+                <DropdownDivider />
+                <DropdownButton onClick={handleLogout}>
+                  <i className="fas fa-sign-out-alt"></i>
+                  로그아웃
+                </DropdownButton>
+              </DropdownMenu>
+            )}
+          </UserMenu>
+        ) : (
+          <LoginButton to="/login">
             <i
-              className="fas fa-shopping-bag"
+              className="fas fa-sign-in-alt"
               style={{ marginRight: "8px" }}
             ></i>
-            상품
-          </NavLink>
-          <CategoryButton onClick={handleCategoryClick} type="button">
-            <i className="fas fa-th-large" style={{ marginRight: "8px" }}></i>
-            카테고리
-          </CategoryButton>
-          <NavLink to="/event-list">
-            <i className="fas fa-gift" style={{ marginRight: "8px" }}></i>
-            이벤트
-          </NavLink>
-        </Nav>
-
-        <SearchSection>
-          <SearchContainer>
-            <SearchInput
-              type="text"
-              placeholder="검색어를 입력하세요"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <SearchButton type="submit" onClick={handleSearch}>
-              <MagnifyingGlassIcon />
-            </SearchButton>
-          </SearchContainer>
-        </SearchSection>
-
-        <UserSection>
-          <CartLink to="/cart">
-            <i className="fas fa-shopping-cart"></i>
-            <span>장바구니</span>
-          </CartLink>
-          {user && user.nickname && user.nickname.trim() !== "" ? (
-            <UserMenu ref={userMenuRef}>
-              <UserInfo onClick={() => setShowUserMenu(!showUserMenu)}>
-                <UserAvatar>{getInitials(user.nickname)}</UserAvatar>
-                <UserName>{user.nickname}님</UserName>
-              </UserInfo>
-              {showUserMenu && (
-                <DropdownMenu>
-                  {user && user.userType === "admin" ? (
-                    <DropdownItem to="/admin-dashboard">
-                      <i className="fas fa-chart-line"></i>
-                      관리자 대시보드
-                    </DropdownItem>
-                  ) : (
-                    <DropdownItem
-                      to={
-                        user && user.userType === "seller"
-                          ? "/seller-mypage"
-                          : "/mypage"
-                      }
-                    >
-                      <i className="fas fa-user"></i>
-                      마이페이지
-                    </DropdownItem>
-                  )}
-                  {user && user.userType !== "admin" && (
-                    <DropdownItem to="/profile-settings">
-                      <i className="fas fa-cog"></i>
-                      프로필 관리
-                    </DropdownItem>
-                  )}
-                  {user && user.userType === "user" && (
-                    <DropdownItem to="/become-seller">
-                      <i className="fas fa-store"></i>
-                      판매자 전환
-                    </DropdownItem>
-                  )}
-                  <DropdownDivider />
-                  <DropdownButton onClick={handleLogout}>
-                    <i className="fas fa-sign-out-alt"></i>
-                    로그아웃
-                  </DropdownButton>
-                </DropdownMenu>
-              )}
-            </UserMenu>
-          ) : (
-            <LoginButton to="/login">
-              <i
-                className="fas fa-sign-in-alt"
-                style={{ marginRight: "8px" }}
-              ></i>
-              로그인
-            </LoginButton>
-          )}
-        </UserSection>
-      </HeaderContainer>
+            로그인
+          </LoginButton>
+        )}
+      </UserSection>
       <CategoryModal
         isOpen={isCategoryModalOpen}
         onClose={closeCategoryModal}
       />
-    </>
+    </HeaderContainer>
   );
 };
 

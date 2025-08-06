@@ -11,6 +11,17 @@ export interface FeedEventDto {
   isDeleted?: boolean;
 }
 
+// 백엔드 EventSummaryDto 응답 구조
+export interface EventSummaryDto {
+  eventId: number;
+  title: string;
+  eventStartDate: string;
+  eventEndDate: string;
+  type: string;
+  deletedAt?: string | null;
+  isDeleted?: boolean;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -86,40 +97,37 @@ class EventService {
 
   /**
    * 피드 생성용 이벤트 목록 조회 (진행중인 이벤트만)
+   * 백엔드 캐싱과 연동하여 성능 최적화
    */
   async getFeedAvailableEvents(): Promise<FeedEventDto[]> {
     try {
-      const response = await axiosInstance.get<ApiResponse<FeedEventDto[]>>('/api/events/feed-available');
+      // 캐시 헤더 추가로 브라우저 캐싱 활용
+      const response = await axiosInstance.get<EventSummaryDto[]>('/api/events/feed-available', {
+        headers: {
+          'Cache-Control': 'max-age=300', // 5분간 브라우저 캐시
+        }
+      });
       
-      if (response.data.success) {
-        // Soft delete된 이벤트 필터링 및 현재 진행중인 이벤트만 필터링
-        const currentDate = new Date();
-        const events = response.data.data.filter(event => {
-          // Soft delete 체크
-          if (event.deletedAt || event.isDeleted) {
-            return false;
-          }
-          
-          // 현재 날짜가 이벤트 기간 내에 있는지 체크
-          const startDate = new Date(event.eventStartDate);
-          const endDate = new Date(event.eventEndDate);
-          
-          return currentDate >= startDate && currentDate <= endDate;
-        });
-        
-        // console.log('필터링된 이벤트 목록:', events);
-        return events;
-      } else {
-        throw new Error(response.data.message || '이벤트 목록 조회에 실패했습니다.');
-      }
+      // 백엔드에서 반환하는 EventSummaryDto를 FeedEventDto로 변환
+      const events: FeedEventDto[] = response.data.map(event => ({
+        eventId: event.eventId,
+        title: event.title,
+        eventStartDate: event.eventStartDate,
+        eventEndDate: event.eventEndDate,
+        type: event.type,
+        deletedAt: event.deletedAt,
+        isDeleted: event.isDeleted
+      }));
+      
+             return events;
+      
     } catch (error: any) {
       console.error('이벤트 목록 조회 실패:', error);
       
-      // 백엔드 연결 실패시 fallback 데이터 반환
-      if (!error.response || error.code === 'NETWORK_ERROR') {
-        console.warn('백엔드 연결 실패 - fallback 이벤트 데이터 사용');
-        return this.getFallbackEvents();
-      }
+             // 백엔드 연결 실패시 빈 배열 반환
+       if (!error.response || error.code === 'NETWORK_ERROR') {
+         return [];
+       }
       
       throw error;
     }
@@ -263,10 +271,12 @@ class EventService {
       }
     ];
     
-    // 현재 진행중인 이벤트만 필터링
+    // 현재 진행중인 이벤트만 필터링 (더 엄격한 검증)
     return fallbackEvents.filter(event => {
       const startDate = new Date(event.eventStartDate);
       const endDate = new Date(event.eventEndDate);
+      
+      // 현재 날짜가 시작일 이후이고 종료일 이전인지 확인
       return currentDate >= startDate && currentDate <= endDate;
     });
   }

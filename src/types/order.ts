@@ -102,6 +102,7 @@ export interface OrderDetail {
 }
 
 export interface PurchasedProduct {
+  orderItemId: number;
   productId: number;
   productName: string;
   imageUrl: string;

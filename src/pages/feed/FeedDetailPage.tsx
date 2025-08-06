@@ -140,7 +140,7 @@ const FeedDetailPage = () => {
   useEffect(() => {
     const fetchFeed = async () => {
       if (!id) {
-        navigate('/feed-list');
+        navigate('/feeds');
         return;
       }
 
@@ -165,12 +165,12 @@ const FeedDetailPage = () => {
             setFeed(foundFeed);
             setComments(dummyComments);
           } else {
-            navigate('/feed-list');
+            navigate('/feeds');
             return;
           }
         } else {
           // 기타 에러의 경우 목록으로 이동
-          navigate('/feed-list');
+          navigate('/feeds');
           return;
         }
       } finally {
@@ -310,7 +310,7 @@ const FeedDetailPage = () => {
       
       // 1초 후 피드 목록으로 이동
       setTimeout(() => {
-        navigate('/feed-list');
+        navigate('/feeds');
       }, 1000);
       
     } catch (error: any) {
@@ -349,7 +349,7 @@ const FeedDetailPage = () => {
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-4">피드를 찾을 수 없습니다</h2>
           <button
-            onClick={() => navigate('/feed-list')}
+            onClick={() => navigate('/feeds')}
             className="bg-[#87CEEB] text-white px-4 py-2 rounded-lg hover:bg-blue-400 transition duration-200"
           >
             피드 목록으로 돌아가기

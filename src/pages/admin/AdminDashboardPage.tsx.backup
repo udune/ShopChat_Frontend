@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect, FC, ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import * as echarts from "echarts";
 import { useAuth } from "../../contexts/AuthContext";
+import UserManagePage from "./UserManagePage";
+import ReportManagePage from "./ReportManagePage";
+import StatsDashboardPage from "./StatsDashboardPage";
 
 // 애니메이션 정의
 const fadeInUp = keyframes`
@@ -413,6 +416,21 @@ const SidebarLink = styled.a`
 
   &:hover .sidebar-icon {
     animation: ${pulse} 0.6s ease-in-out;
+  }
+
+  &.active {
+    background: linear-gradient(
+      135deg,
+      rgba(249, 115, 22, 0.2),
+      rgba(249, 115, 22, 0.1)
+    );
+    color: white;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+
+    .sidebar-icon {
+      color: #f97316;
+    }
   }
 `;
 
@@ -1664,13 +1682,14 @@ const ChartWrapper = styled.div`
 
 const AdminDashboardPage: FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   // 리뷰 관리 관련 상태
-  const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard', 'reviews', 'coupons'
+  const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard' 또는 'reviews'
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -1683,20 +1702,26 @@ const AdminDashboardPage: FC = () => {
     status: "all",
   });
 
-  // 쿠폰 관리 관련 상태
-  const [showCouponModal, setShowCouponModal] = useState(false);
-  const [couponForm, setCouponForm] = useState({
-    name: "",
-    description: "",
-    discountType: "percentage",
-    discountValue: "",
-    minAmount: "",
-    expiryDate: "",
-    maxUses: "",
-    isActive: true,
-  });
+  // 차트 참조
+  const ratingChartRef = useRef<HTMLDivElement>(null);
 
-  // 리뷰 데이터
+  // 리뷰 데이터 타입 정의
+  interface Review {
+    id: number;
+    productId: number;
+    productName: string;
+    productImage: string;
+    customerName: string;
+    rating: number;
+    content: string;
+    date: string;
+    status: "answered" | "unanswered";
+    images?: string[];
+    reply?: string;
+    isHidden?: boolean;
+  }
+
+  // 샘플 리뷰 데이터
   const [reviews, setReviews] = useState<Review[]>([
     {
       id: 1,
@@ -1776,68 +1801,6 @@ const AdminDashboardPage: FC = () => {
         "정현우 고객님, 불편을 드려 대단히 죄송합니다. 즉시 교환 처리해드리겠습니다.",
     },
   ]);
-
-  // 쿠폰 데이터
-  const [coupons, setCoupons] = useState([
-    {
-      id: 1,
-      name: "신규가입 15% 할인",
-      description: "전 상품 적용 가능",
-      discountType: "percentage",
-      discountValue: 15,
-      minAmount: 0,
-      expiryDate: "2025-08-31",
-      maxUses: 1000,
-      usedCount: 245,
-      isActive: true,
-      createdAt: "2025-01-15",
-    },
-    {
-      id: 2,
-      name: "여름 시즌 10,000원 할인",
-      description: "50,000원 이상 구매 시",
-      discountType: "fixed",
-      discountValue: 10000,
-      minAmount: 50000,
-      expiryDate: "2025-09-15",
-      maxUses: 500,
-      usedCount: 123,
-      isActive: true,
-      createdAt: "2025-06-01",
-    },
-    {
-      id: 3,
-      name: "VIP 무료배송",
-      description: "배송비 무료",
-      discountType: "shipping",
-      discountValue: 0,
-      minAmount: 30000,
-      expiryDate: "2025-12-31",
-      maxUses: 200,
-      usedCount: 67,
-      isActive: true,
-      createdAt: "2025-03-10",
-    },
-  ]);
-
-  // 차트 참조
-  const ratingChartRef = useRef<HTMLDivElement>(null);
-
-  // 리뷰 데이터 타입 정의
-  interface Review {
-    id: number;
-    productId: number;
-    productName: string;
-    productImage: string;
-    customerName: string;
-    rating: number;
-    content: string;
-    date: string;
-    status: "answered" | "unanswered";
-    images?: string[];
-    reply?: string;
-    isHidden?: boolean;
-  }
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -2083,66 +2046,370 @@ const AdminDashboardPage: FC = () => {
     }
   }, [reviewStats.ratingDistribution, activeTab]);
 
-  // 쿠폰 관리 관련 함수들
-  const handleCouponFormChange = (
-    field: string,
-    value: string | number | boolean
-  ) => {
-    setCouponForm({
-      ...couponForm,
-      [field]: value,
-    });
-  };
+  // 현재 경로에 따라 콘텐츠를 렌더링하는 함수
+  const renderContent = () => {
+    if (location.pathname === "/admin/user-manage") {
+      return <UserManagePage />;
+    } else if (location.pathname === "/admin/report-manage") {
+      return <ReportManagePage />;
+    } else if (location.pathname === "/admin/stats-dashboard") {
+      return <StatsDashboardPage />;
+    } else {
+      // 기본 대시보드 또는 리뷰 관리
+      return (
+        <>
+          <Breadcrumb>
+            <BreadcrumbLink
+              onClick={handleHomeClick}
+              style={{ cursor: "pointer" }}
+            >
+              홈
+            </BreadcrumbLink>{" "}
+            <span className="mx-2">/</span>{" "}
+            <BreadcrumbLink>
+              {activeTab === "dashboard" ? "대시보드" : "리뷰 관리"}
+            </BreadcrumbLink>
+          </Breadcrumb>
 
-  const createCoupon = () => {
-    if (
-      !couponForm.name ||
-      !couponForm.discountValue ||
-      !couponForm.expiryDate
-    ) {
-      alert("필수 항목을 모두 입력해주세요.");
-      return;
-    }
+          <PageTitle>
+            {activeTab === "dashboard" ? "대시보드" : "리뷰 관리"}
+          </PageTitle>
 
-    const newCoupon = {
-      id: Date.now(),
-      ...couponForm,
-      discountValue: parseFloat(couponForm.discountValue),
-      minAmount: parseFloat(couponForm.minAmount) || 0,
-      maxUses: parseInt(couponForm.maxUses) || 1000,
-      usedCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+          {/* 탭 컨테이너 */}
+          <TabContainer>
+            <TabButton
+              $active={activeTab === "dashboard"}
+              onClick={() => setActiveTab("dashboard")}
+            >
+              대시보드
+            </TabButton>
+            <TabButton
+              $active={activeTab === "reviews"}
+              onClick={() => setActiveTab("reviews")}
+            >
+              리뷰 관리
+            </TabButton>
+          </TabContainer>
 
-    setCoupons([...coupons, newCoupon]);
-    setShowCouponModal(false);
-    setCouponForm({
-      name: "",
-      description: "",
-      discountType: "percentage",
-      discountValue: "",
-      minAmount: "",
-      expiryDate: "",
-      maxUses: "",
-      isActive: true,
-    });
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
+          {/* 대시보드 탭 내용 */}
+          {activeTab === "dashboard" && (
+            <>
+              <StatCardsGrid>
+                <StatCard>
+                  <div>
+                    <StatTitle>총 사용자</StatTitle>
+                    <StatValue>3,721</StatValue>
+                    <StatChange $positive={true}>
+                      <i className="fas fa-arrow-up"></i>
+                      +12.5%
+                    </StatChange>
+                  </div>
+                  <StatIconWrapper>
+                    <i className="fas fa-users"></i>
+                  </StatIconWrapper>
+                </StatCard>
+                <StatCard>
+                  <div>
+                    <StatTitle>총 주문</StatTitle>
+                    <StatValue>1,847</StatValue>
+                    <StatChange $positive={true}>
+                      <i className="fas fa-arrow-up"></i>
+                      +8.3%
+                    </StatChange>
+                  </div>
+                  <StatIconWrapper>
+                    <i className="fas fa-shopping-cart"></i>
+                  </StatIconWrapper>
+                </StatCard>
+                <StatCard>
+                  <div>
+                    <StatTitle>총 매출</StatTitle>
+                    <StatValue>₩2.4M</StatValue>
+                    <StatChange $positive={true}>
+                      <i className="fas fa-arrow-up"></i>
+                      +15.2%
+                    </StatChange>
+                  </div>
+                  <StatIconWrapper>
+                    <i className="fas fa-chart-line"></i>
+                  </StatIconWrapper>
+                </StatCard>
+                <StatCard>
+                  <div>
+                    <StatTitle>신규 가입</StatTitle>
+                    <StatValue>156</StatValue>
+                    <StatChange $positive={false}>
+                      <i className="fas fa-arrow-down"></i>
+                      -2.1%
+                    </StatChange>
+                  </div>
+                  <StatIconWrapper>
+                    <i className="fas fa-user-plus"></i>
+                  </StatIconWrapper>
+                </StatCard>
+              </StatCardsGrid>
 
-  const toggleCouponStatus = (couponId: number) => {
-    setCoupons(
-      coupons.map((coupon) =>
-        coupon.id === couponId
-          ? { ...coupon, isActive: !coupon.isActive }
-          : coupon
-      )
-    );
-  };
+              <RecentActivityCard>
+                <CardHeader>
+                  <CardTitle>최근 활동</CardTitle>
+                  <ViewAllButton>전체 보기</ViewAllButton>
+                </CardHeader>
+                <ActivityList>
+                  <ActivityItem>
+                    <ActivityIconWrapper $type="order">
+                      <i className="fas fa-shopping-cart"></i>
+                    </ActivityIconWrapper>
+                    <ActivityContent>
+                      <ActivityText>
+                        <strong>김민준</strong>님이 새로운 주문을 완료했습니다
+                      </ActivityText>
+                      <ActivityTime>2분 전</ActivityTime>
+                    </ActivityContent>
+                  </ActivityItem>
+                  <ActivityItem>
+                    <ActivityIconWrapper $type="review">
+                      <i className="fas fa-star"></i>
+                    </ActivityIconWrapper>
+                    <ActivityContent>
+                      <ActivityText>
+                        <strong>이서연</strong>님이 상품 리뷰를 작성했습니다
+                      </ActivityText>
+                      <ActivityTime>15분 전</ActivityTime>
+                    </ActivityContent>
+                  </ActivityItem>
+                  <ActivityItem>
+                    <ActivityIconWrapper $type="user">
+                      <i className="fas fa-user-plus"></i>
+                    </ActivityIconWrapper>
+                    <ActivityContent>
+                      <ActivityText>
+                        <strong>박지훈</strong>님이 회원가입했습니다
+                      </ActivityText>
+                      <ActivityTime>1시간 전</ActivityTime>
+                    </ActivityContent>
+                  </ActivityItem>
+                  <ActivityItem>
+                    <ActivityIconWrapper $type="payment">
+                      <i className="fas fa-credit-card"></i>
+                    </ActivityIconWrapper>
+                    <ActivityContent>
+                      <ActivityText>
+                        <strong>최수아</strong>님이 결제를 완료했습니다
+                      </ActivityText>
+                      <ActivityTime>2시간 전</ActivityTime>
+                    </ActivityContent>
+                  </ActivityItem>
+                </ActivityList>
+              </RecentActivityCard>
 
-  const deleteCoupon = (couponId: number) => {
-    if (window.confirm("정말로 이 쿠폰을 삭제하시겠습니까?")) {
-      setCoupons(coupons.filter((coupon) => coupon.id !== couponId));
+              <ReviewStatsGrid>
+                <ReviewStatCard>
+                  <ReviewStatIcon>
+                    <i className="fas fa-star"></i>
+                  </ReviewStatIcon>
+                  <div>
+                    <ReviewStatTitle>평균 평점</ReviewStatTitle>
+                    <ReviewStatValue>{reviewStats.averageRating}</ReviewStatValue>
+                  </div>
+                </ReviewStatCard>
+                <ReviewStatCard>
+                  <ReviewStatIcon>
+                    <i className="fas fa-comment"></i>
+                  </ReviewStatIcon>
+                  <div>
+                    <ReviewStatTitle>총 리뷰</ReviewStatTitle>
+                    <ReviewStatValue>{reviewStats.totalReviews}</ReviewStatValue>
+                  </div>
+                </ReviewStatCard>
+                <ReviewStatCard>
+                  <ReviewStatIcon>
+                    <i className="fas fa-clock"></i>
+                  </ReviewStatIcon>
+                  <div>
+                    <ReviewStatTitle>답변 대기</ReviewStatTitle>
+                    <ReviewStatValue>{reviewStats.unansweredReviews}</ReviewStatValue>
+                  </div>
+                </ReviewStatCard>
+              </ReviewStatsGrid>
+
+              <ChartContainer>
+                <ChartTitle>평점 분포</ChartTitle>
+                <div ref={ratingChartRef} style={{ height: "300px" }}></div>
+              </ChartContainer>
+            </>
+          )}
+
+          {/* 리뷰 관리 탭 내용 */}
+          {activeTab === "reviews" && (
+            <>
+              <FilterSection>
+                <FilterHeader>
+                  <FilterTitle>필터</FilterTitle>
+                </FilterHeader>
+                <FilterContent>
+                  <FilterGrid>
+                    <FilterSelect
+                      value={filters.rating}
+                      onChange={(e) =>
+                        handleFilterChange("rating", e.target.value)
+                      }
+                    >
+                      <option value="all">모든 평점</option>
+                      <option value="5">5점</option>
+                      <option value="4">4점</option>
+                      <option value="3">3점</option>
+                      <option value="2">2점</option>
+                      <option value="1">1점</option>
+                    </FilterSelect>
+                    <FilterSelect
+                      value={filters.status}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
+                    >
+                      <option value="all">모든 상태</option>
+                      <option value="answered">답변 완료</option>
+                      <option value="unanswered">답변 대기</option>
+                    </FilterSelect>
+                    <FilterSelect
+                      value={filters.dateRange}
+                      onChange={(e) =>
+                        handleFilterChange("dateRange", e.target.value)
+                      }
+                    >
+                      <option value="all">모든 기간</option>
+                      <option value="today">오늘</option>
+                      <option value="week">최근 7일</option>
+                      <option value="month">최근 30일</option>
+                    </FilterSelect>
+                    <FilterInput
+                      type="text"
+                      placeholder="검색어 입력..."
+                      value={filters.keyword}
+                      onChange={(e) =>
+                        handleFilterChange("keyword", e.target.value)
+                      }
+                    />
+                  </FilterGrid>
+                </FilterContent>
+              </FilterSection>
+
+              <ReviewTableContainer>
+                <ReviewTableHeader>
+                  <ReviewTableHeaderCell>상품</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>고객</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>평점</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>내용</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>날짜</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>상태</ReviewTableHeaderCell>
+                  <ReviewTableHeaderCell>작업</ReviewTableHeaderCell>
+                </ReviewTableHeader>
+                {currentReviews.map((review) => (
+                  <ReviewTableRow key={review.id}>
+                    <ReviewTableCell>
+                      <ProductInfo>
+                        <ProductImage src={review.productImage} alt={review.productName} />
+                        <ProductName>{review.productName}</ProductName>
+                      </ProductInfo>
+                    </ReviewTableCell>
+                    <ReviewTableCell>{review.customerName}</ReviewTableCell>
+                    <ReviewTableCell>
+                      <RatingStars>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            $filled={star <= review.rating}
+                            className="fas fa-star"
+                          />
+                        ))}
+                      </RatingStars>
+                    </ReviewTableCell>
+                    <ReviewTableCell>
+                      <ReviewContent>{review.content}</ReviewContent>
+                      {review.images && review.images.length > 0 && (
+                        <ReviewImages>
+                          {review.images.map((image, index) => (
+                            <ReviewImage key={index} src={image} alt={`리뷰 이미지 ${index + 1}`} />
+                          ))}
+                        </ReviewImages>
+                      )}
+                    </ReviewTableCell>
+                    <ReviewTableCell>{review.date}</ReviewTableCell>
+                    <ReviewTableCell>
+                      <StatusBadge $status={review.status}>
+                        {review.status === "answered" ? "답변 완료" : "답변 대기"}
+                      </StatusBadge>
+                    </ReviewTableCell>
+                    <ReviewTableCell>
+                      <ActionButtons>
+                        <ActionButton onClick={() => openReviewModal(review)}>
+                          <i className="fas fa-reply"></i>
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => toggleHideReview(review.id)}
+                          $variant="warning"
+                        >
+                          <i className="fas fa-eye-slash"></i>
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => deleteReview(review.id)}
+                          $variant="danger"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </ActionButton>
+                      </ActionButtons>
+                    </ReviewTableCell>
+                  </ReviewTableRow>
+                ))}
+              </ReviewTableContainer>
+
+              <PaginationContainer>
+                <div>
+                  <select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      color: "white",
+                      marginRight: "16px",
+                    }}
+                  >
+                    <option value={5}>5개씩</option>
+                    <option value={10}>10개씩</option>
+                    <option value={20}>20개씩</option>
+                  </select>
+                  <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                    총 {filteredReviews.length}개 중 {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredReviews.length)}개
+                  </span>
+                </div>
+                <div>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      style={{
+                        padding: "8px 12px",
+                        margin: "0 4px",
+                        borderRadius: "8px",
+                        border: currentPage === number ? "1px solid #f97316" : "1px solid rgba(255, 255, 255, 0.2)",
+                        background: currentPage === number ? "rgba(249, 115, 22, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                        color: currentPage === number ? "#f97316" : "white",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                </div>
+              </PaginationContainer>
+            </>
+          )}
+        </>
+      );
     }
   };
 
@@ -2321,31 +2588,37 @@ const AdminDashboardPage: FC = () => {
           <SidebarNav>
             <SidebarList>
               <SidebarItem>
-                <SidebarLink onClick={() => setActiveTab("dashboard")}>
+                <SidebarLink 
+                  onClick={() => navigate("/admin")}
+                  className={location.pathname === "/admin" ? "active" : ""}
+                >
                   <SidebarIcon className="fas fa-home sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>대시보드</SidebarText>
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => setActiveTab("reviews")}>
+                <SidebarLink 
+                  onClick={() => setActiveTab("reviews")}
+                  className={activeTab === "reviews" ? "active" : ""}
+                >
                   <SidebarIcon className="fas fa-star sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>리뷰 관리</SidebarText>
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => setActiveTab("coupons")}>
-                  <SidebarIcon className="fas fa-ticket-alt sidebar-icon"></SidebarIcon>
-                  <SidebarText $isOpen={sidebarOpen}>쿠폰 관리</SidebarText>
-                </SidebarLink>
-              </SidebarItem>
-              <SidebarItem>
-                <SidebarLink onClick={() => navigate("/user-manage")}>
+                <SidebarLink 
+                  onClick={() => navigate("/admin/user-manage")}
+                  className={location.pathname === "/admin/user-manage" ? "active" : ""}
+                >
                   <SidebarIcon className="fas fa-user sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>사용자 관리</SidebarText>
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => navigate("/report-manage")}>
+                <SidebarLink 
+                  onClick={() => navigate("/admin/report-manage")}
+                  className={location.pathname === "/admin/report-manage" ? "active" : ""}
+                >
                   <SidebarIcon className="fas fa-flag sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>신고 관리</SidebarText>
                 </SidebarLink>
@@ -2363,7 +2636,10 @@ const AdminDashboardPage: FC = () => {
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => navigate("/stats-dashboard")}>
+                <SidebarLink 
+                  onClick={() => navigate("/admin/stats-dashboard")}
+                  className={location.pathname === "/admin/stats-dashboard" ? "active" : ""}
+                >
                   <SidebarIcon className="fas fa-chart-line sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>통계 분석</SidebarText>
                 </SidebarLink>
@@ -2380,52 +2656,9 @@ const AdminDashboardPage: FC = () => {
 
         <MainContent $sidebarOpen={sidebarOpen}>
           <ContentPadding>
-            <Breadcrumb>
-              <BreadcrumbLink
-                onClick={handleHomeClick}
-                style={{ cursor: "pointer" }}
-              >
-                홈
-              </BreadcrumbLink>{" "}
-              <span className="mx-2">/</span>{" "}
-              <BreadcrumbLink>
-                {activeTab === "dashboard"
-                  ? "대시보드"
-                  : activeTab === "reviews"
-                  ? "리뷰 관리"
-                  : "쿠폰 관리"}
-              </BreadcrumbLink>
-            </Breadcrumb>
-
-            <PageTitle>
-              {activeTab === "dashboard"
-                ? "대시보드"
-                : activeTab === "reviews"
-                ? "리뷰 관리"
-                : "쿠폰 관리"}
-            </PageTitle>
-
-            {/* 탭 컨테이너 */}
-            <TabContainer>
-              <TabButton
-                $active={activeTab === "dashboard"}
-                onClick={() => setActiveTab("dashboard")}
-              >
-                대시보드
-              </TabButton>
-              <TabButton
-                $active={activeTab === "reviews"}
-                onClick={() => setActiveTab("reviews")}
-              >
-                리뷰 관리
-              </TabButton>
-              <TabButton
-                $active={activeTab === "coupons"}
-                onClick={() => setActiveTab("coupons")}
-              >
-                쿠폰 관리
-              </TabButton>
-            </TabContainer>
+            {renderContent()}
+          </ContentPadding>
+        </MainContent>
 
             {/* 대시보드 탭 내용 */}
             {activeTab === "dashboard" && (
@@ -2888,498 +3121,9 @@ const AdminDashboardPage: FC = () => {
                 </ReviewTableContainer>
               </>
             )}
-
-            {/* 쿠폰 관리 탭 내용 */}
-            {activeTab === "coupons" && (
-              <>
-                {/* 쿠폰 통계 */}
-                <StatCardsGrid>
-                  <StatCard>
-                    <div>
-                      <StatTitle>총 쿠폰 수</StatTitle>
-                      <StatValue>{coupons.length}</StatValue>
-                      <StatChange $positive={true}>
-                        <i className="fas fa-arrow-up"></i>
-                        활성 쿠폰
-                      </StatChange>
-                    </div>
-                    <StatIconWrapper $bgColor="#e3f2fd">
-                      <i
-                        className="fas fa-ticket-alt"
-                        style={{ color: "#87ceeb" }}
-                      ></i>
-                    </StatIconWrapper>
-                  </StatCard>
-
-                  <StatCard>
-                    <div>
-                      <StatTitle>총 사용 횟수</StatTitle>
-                      <StatValue>
-                        {coupons.reduce(
-                          (sum, coupon) => sum + coupon.usedCount,
-                          0
-                        )}
-                      </StatValue>
-                      <StatChange $positive={true}>
-                        <i className="fas fa-arrow-up"></i>
-                        이번 달
-                      </StatChange>
-                    </div>
-                    <StatIconWrapper $bgColor="#e8f5e9">
-                      <i
-                        className="fas fa-chart-line"
-                        style={{ color: "#28a745" }}
-                      ></i>
-                    </StatIconWrapper>
-                  </StatCard>
-
-                  <StatCard>
-                    <div>
-                      <StatTitle>활성 쿠폰</StatTitle>
-                      <StatValue>
-                        {coupons.filter((c) => c.isActive).length}
-                      </StatValue>
-                      <StatChange $positive={true}>
-                        <i className="fas fa-check"></i>
-                        사용 가능
-                      </StatChange>
-                    </div>
-                    <StatIconWrapper $bgColor="#ede7f6">
-                      <i
-                        className="fas fa-check-circle"
-                        style={{ color: "#673ab7" }}
-                      ></i>
-                    </StatIconWrapper>
-                  </StatCard>
-
-                  <StatCard>
-                    <div>
-                      <StatTitle>만료 예정</StatTitle>
-                      <StatValue>
-                        {
-                          coupons.filter((c) => {
-                            const expiry = new Date(c.expiryDate);
-                            const today = new Date();
-                            const diffDays = Math.ceil(
-                              (expiry.getTime() - today.getTime()) /
-                                (1000 * 60 * 60 * 24)
-                            );
-                            return diffDays <= 30 && diffDays > 0;
-                          }).length
-                        }
-                      </StatValue>
-                      <StatChange $positive={false}>
-                        <i className="fas fa-exclamation-triangle"></i>
-                        30일 이내
-                      </StatChange>
-                    </div>
-                    <StatIconWrapper $bgColor="#fff3e0">
-                      <i
-                        className="fas fa-clock"
-                        style={{ color: "#ff9800" }}
-                      ></i>
-                    </StatIconWrapper>
-                  </StatCard>
-                </StatCardsGrid>
-
-                {/* 쿠폰 생성 버튼 */}
-                <div
-                  style={{
-                    marginBottom: "1.5rem",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <button
-                    onClick={() => setShowCouponModal(true)}
-                    style={{
-                      background: "linear-gradient(135deg, #f97316, #ea580c)",
-                      color: "white",
-                      border: "none",
-                      padding: "12px 24px",
-                      borderRadius: "12px",
-                      fontSize: "0.875rem",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: "0 6px 20px rgba(249, 115, 22, 0.3)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 8px 25px rgba(249, 115, 22, 0.4)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 6px 20px rgba(249, 115, 22, 0.3)";
-                    }}
-                  >
-                    <i
-                      className="fas fa-plus"
-                      style={{ marginRight: "8px" }}
-                    ></i>
-                    새 쿠폰 생성
-                  </button>
-                </div>
-
-                {/* 쿠폰 목록 */}
-                <ReviewTableContainer>
-                  <ReviewTableHeader>
-                    <ReviewTableTitle>쿠폰 목록</ReviewTableTitle>
-                    <ReviewCount>총 {coupons.length}개의 쿠폰</ReviewCount>
-                  </ReviewTableHeader>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <ReviewTable>
-                      <ReviewTableHead>
-                        <tr>
-                          <ReviewTableHeaderCell>쿠폰명</ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell>
-                            할인 정보
-                          </ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell>
-                            사용 조건
-                          </ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell>만료일</ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell>
-                            사용 현황
-                          </ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell>상태</ReviewTableHeaderCell>
-                          <ReviewTableHeaderCell style={{ textAlign: "right" }}>
-                            관리
-                          </ReviewTableHeaderCell>
-                        </tr>
-                      </ReviewTableHead>
-                      <ReviewTableBody>
-                        {coupons.map((coupon) => (
-                          <ReviewTableRow key={coupon.id}>
-                            <ReviewTableCell>
-                              <div>
-                                <div
-                                  style={{
-                                    fontWeight: 600,
-                                    color: "white",
-                                    marginBottom: "4px",
-                                  }}
-                                >
-                                  {coupon.name}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: "0.875rem",
-                                    color: "rgba(255, 255, 255, 0.7)",
-                                  }}
-                                >
-                                  {coupon.description}
-                                </div>
-                              </div>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <div
-                                style={{ fontWeight: 600, color: "#f97316" }}
-                              >
-                                {coupon.discountType === "percentage" &&
-                                  `${coupon.discountValue}%`}
-                                {coupon.discountType === "fixed" &&
-                                  `${coupon.discountValue.toLocaleString()}원`}
-                                {coupon.discountType === "shipping" &&
-                                  "무료배송"}
-                              </div>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "rgba(255, 255, 255, 0.8)",
-                                }}
-                              >
-                                {coupon.minAmount > 0
-                                  ? `${coupon.minAmount.toLocaleString()}원 이상`
-                                  : "조건 없음"}
-                              </div>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <div
-                                style={{ color: "rgba(255, 255, 255, 0.8)" }}
-                              >
-                                {coupon.expiryDate}
-                              </div>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "rgba(255, 255, 255, 0.8)",
-                                }}
-                              >
-                                {coupon.usedCount} / {coupon.maxUses}
-                              </div>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <StatusBadge
-                                $status={
-                                  coupon.isActive ? "answered" : "unanswered"
-                                }
-                              >
-                                {coupon.isActive ? "활성" : "비활성"}
-                              </StatusBadge>
-                            </ReviewTableCell>
-                            <ReviewTableCell>
-                              <ActionButtons>
-                                <ActionButton
-                                  $variant="view"
-                                  onClick={() => toggleCouponStatus(coupon.id)}
-                                  title={
-                                    coupon.isActive ? "비활성화" : "활성화"
-                                  }
-                                >
-                                  <i
-                                    className={`fas ${
-                                      coupon.isActive ? "fa-pause" : "fa-play"
-                                    }`}
-                                  ></i>
-                                </ActionButton>
-                                <ActionButton
-                                  $variant="delete"
-                                  onClick={() => deleteCoupon(coupon.id)}
-                                  title="삭제"
-                                >
-                                  <i className="fas fa-trash-alt"></i>
-                                </ActionButton>
-                              </ActionButtons>
-                            </ReviewTableCell>
-                          </ReviewTableRow>
-                        ))}
-                      </ReviewTableBody>
-                    </ReviewTable>
-                  </div>
-                </ReviewTableContainer>
-              </>
-            )}
           </ContentPadding>
         </MainContent>
       </FlexContainer>
-
-      {/* 쿠폰 생성 모달 */}
-      {showCouponModal && (
-        <ModalOverlay onClick={() => setShowCouponModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>새 쿠폰 생성</ModalTitle>
-              <ModalCloseButton onClick={() => setShowCouponModal(false)}>
-                <i className="fas fa-times"></i>
-              </ModalCloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <div style={{ display: "grid", gap: "1rem" }}>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      color: "white",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    쿠폰명 *
-                  </label>
-                  <FilterInput
-                    type="text"
-                    value={couponForm.name}
-                    onChange={(e) =>
-                      handleCouponFormChange("name", e.target.value)
-                    }
-                    placeholder="쿠폰명을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      color: "white",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    설명
-                  </label>
-                  <FilterInput
-                    type="text"
-                    value={couponForm.description}
-                    onChange={(e) =>
-                      handleCouponFormChange("description", e.target.value)
-                    }
-                    placeholder="쿠폰 설명을 입력하세요"
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "1rem",
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        color: "white",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      할인 유형
-                    </label>
-                    <FilterSelect
-                      value={couponForm.discountType}
-                      onChange={(e) =>
-                        handleCouponFormChange("discountType", e.target.value)
-                      }
-                    >
-                      <option value="percentage">퍼센트 할인</option>
-                      <option value="fixed">정액 할인</option>
-                      <option value="shipping">무료배송</option>
-                    </FilterSelect>
-                  </div>
-
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        color: "white",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      할인 값 *
-                    </label>
-                    <FilterInput
-                      type="number"
-                      value={couponForm.discountValue}
-                      onChange={(e) =>
-                        handleCouponFormChange("discountValue", e.target.value)
-                      }
-                      placeholder={
-                        couponForm.discountType === "percentage"
-                          ? "15"
-                          : "10000"
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "1rem",
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        color: "white",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      최소 구매 금액
-                    </label>
-                    <FilterInput
-                      type="number"
-                      value={couponForm.minAmount}
-                      onChange={(e) =>
-                        handleCouponFormChange("minAmount", e.target.value)
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        color: "white",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      최대 사용 횟수
-                    </label>
-                    <FilterInput
-                      type="number"
-                      value={couponForm.maxUses}
-                      onChange={(e) =>
-                        handleCouponFormChange("maxUses", e.target.value)
-                      }
-                      placeholder="1000"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      color: "white",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    만료일 *
-                  </label>
-                  <FilterInput
-                    type="date"
-                    value={couponForm.expiryDate}
-                    onChange={(e) =>
-                      handleCouponFormChange("expiryDate", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={couponForm.isActive}
-                    onChange={(e) =>
-                      handleCouponFormChange("isActive", e.target.checked)
-                    }
-                    style={{ width: "16px", height: "16px" }}
-                  />
-                  <label
-                    htmlFor="isActive"
-                    style={{ color: "white", fontSize: "0.875rem" }}
-                  >
-                    즉시 활성화
-                  </label>
-                </div>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton
-                $variant="secondary"
-                onClick={() => setShowCouponModal(false)}
-              >
-                취소
-              </ModalButton>
-              <ModalButton $variant="primary" onClick={createCoupon}>
-                쿠폰 생성
-              </ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
 
       <ToastNotification $show={showToast}>
         <ToastIconWrapper>

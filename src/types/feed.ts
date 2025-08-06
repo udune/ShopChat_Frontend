@@ -75,12 +75,12 @@ export interface FeedComment {
 export interface CreateFeedRequest {
   title: string;
   content: string;
-  instagramId?: string;
-  feedType: 'DAILY' | 'EVENT' | 'RANKING';
   orderItemId: number;
   eventId?: number; // 이벤트 피드인 경우
+  instagramId?: string;
   imageUrls: string[];
   hashtags: string[];
+  feedType?: 'DAILY' | 'EVENT' | 'RANKING'; // 백엔드에서 자동 결정하므로 선택사항
 }
 
 export interface UpdateFeedRequest {

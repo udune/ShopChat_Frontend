@@ -646,15 +646,15 @@ const Sidebar: FC<SidebarProps> = ({ open, onClose }) => {
             </MenuItem>
             <MenuItem>
               <MenuLink
-                to="/feed-list"
-                active={location.pathname === "/feed-list"}
+                to="/feeds"
+                active={location.pathname === "/feeds"}
               >
                 <MenuIcon
                   className="fas fa-list menu-icon"
-                  active={location.pathname === "/feed-list"}
+                  active={location.pathname === "/feeds"}
                 />
                 <MenuText>피드 목록</MenuText>
-                {location.pathname === "/feed-list" && <ActiveIndicator />}
+                {location.pathname === "/feeds" && <ActiveIndicator />}
               </MenuLink>
             </MenuItem>
           </MenuList>

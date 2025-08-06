@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import AddressManagementPage from "./AddressManagementPage";
-import CouponsPage from "./CouponsPage"; // CouponsPage import 추가
+import CouponsPage from "./CouponsPage";
 import MyRecentOrders from "components/order/MyRecentOrders";
 import { OrderService } from "api/orderService";
 import { OrderListItem } from "types/order";
@@ -305,20 +305,36 @@ const MyPageDashboard = () => {
 
 function MyPage() {
   const { user } = useAuth();
+  const location = useLocation();
 
   if (!user) {
-    // 2. user가 null이면 로딩 메시지를 보여주거나
-    //    로그인 페이지로 리디렉션하는 로직을 추가합니다.
-    //    navigate('/login');
     return <div>로그인이 필요합니다.</div>;
   }
+
+  // 현재 경로에 따라 렌더링할 컴포넌트 결정
+  const renderContent = () => {
+    const pathname = location.pathname;
+
+    if (pathname === "/mypage" || pathname === "/mypage/") {
+      return <MyPageDashboard />;
+    } else if (pathname === "/mypage/posts") {
+      return <MyPosts />;
+    } else if (pathname === "/mypage/comments") {
+      return <MyComments />;
+    } else if (pathname === "/mypage/settings") {
+      return <AddressManagementPage />;
+    } else if (pathname === "/mypage/coupons") {
+      return <CouponsPage />;
+    }
+
+    return <MyPageDashboard />;
+  };
 
   return (
     <Container>
       <MainLayout>
         <Sidebar>
           <ProfileCard>
-            {/* <ProfileImg src={user.profileImg} alt="프로필" /> */}
             <ProfileImg src="https://i.pravatar.cc/150?img=32" alt="프로필" />
             <WelcomeMessage>안녕하세요, {user.nickname}님!</WelcomeMessage>
             <EditProfileLink to="/profile-settings">
@@ -326,7 +342,10 @@ function MyPage() {
             </EditProfileLink>
           </ProfileCard>
           <NavMenu>
-            <NavItem to="/mypage">
+            <NavItem
+              to="/mypage"
+              className={location.pathname === "/mypage" ? "active" : ""}
+            >
               <i className="fas fa-tachometer-alt"></i> 대시보드
             </NavItem>
             <NavItem to="/my-orders">
@@ -338,29 +357,39 @@ function MyPage() {
             <NavItem to="/wishlist">
               <i className="fas fa-heart"></i> 위시리스트
             </NavItem>
-            <NavItem to="/mypage/coupons">
+            <NavItem
+              to="/mypage/coupons"
+              className={
+                location.pathname === "/mypage/coupons" ? "active" : ""
+              }
+            >
               <i className="fas fa-ticket-alt"></i> 쿠폰/포인트
             </NavItem>
-            <NavItem to="/mypage/posts">
+            <NavItem
+              to="/mypage/posts"
+              className={location.pathname === "/mypage/posts" ? "active" : ""}
+            >
               <i className="fas fa-pen-square"></i> 내가 작성한 게시글
             </NavItem>
-            <NavItem to="/mypage/comments">
+            <NavItem
+              to="/mypage/comments"
+              className={
+                location.pathname === "/mypage/comments" ? "active" : ""
+              }
+            >
               <i className="fas fa-comment"></i> 내가 작성한 댓글
             </NavItem>
-            <NavItem to="/mypage/settings">
+            <NavItem
+              to="/mypage/settings"
+              className={
+                location.pathname === "/mypage/settings" ? "active" : ""
+              }
+            >
               <i className="fas fa-cog"></i> 설정
             </NavItem>
           </NavMenu>
         </Sidebar>
-        <MainContent>
-          <Routes>
-            <Route index element={<MyPageDashboard />} />
-            <Route path="posts" element={<MyPosts />} />
-            <Route path="comments" element={<MyComments />} />
-            <Route path="settings" element={<AddressManagementPage />} />
-            <Route path="coupons" element={<CouponsPage />} />
-          </Routes>
-        </MainContent>
+        <MainContent>{renderContent()}</MainContent>
       </MainLayout>
     </Container>
   );
