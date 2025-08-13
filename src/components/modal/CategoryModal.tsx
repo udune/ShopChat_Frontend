@@ -97,20 +97,26 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
   /**
    * 카테고리 선택 핸들러
-   * CategoryService.generateFilterUrl() 메서드를 사용하여 URL 생성
+   * API 명세서에 맞춰 /api/products 엔드포인트로 필터링 요청
    */
   const handleCategorySelect = async (category: Category) => {
-    // 필터 파라미터 생성
+    // 필터 파라미터 생성 (API 명세서 기준)
     const filterParams: CategoryFilterParams = {
       categoryId: category.categoryId,
       minPrice,
       maxPrice,
       page: 0,
       size: 9,
+      sort: "latest" // 기본 정렬은 최신순
     };
 
     // CategoryService를 통해 필터 URL 생성
     const filterUrl = CategoryService.generateFilterUrl(filterParams);
+
+    // 부모 컴포넌트에 선택된 카테고리 전달 (있는 경우)
+    if (onCategorySelect) {
+      onCategorySelect(category);
+    }
 
     // 모달 닫기
     onClose();

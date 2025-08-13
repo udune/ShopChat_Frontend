@@ -87,8 +87,7 @@ export interface CategoryFilterParams {
   page?: number; // 페이지 번호 (기본값: 0)
   size?: number; // 페이지 크기 (기본값: 20)
   storeId?: number; // 스토어 ID (선택적)
-  sortBy?: string; // 정렬 기준 (선택적)
-  sortOrder?: "asc" | "desc"; // 정렬 순서 (선택적)
+  sort?: string; // 정렬 방식 (latest/popular, 기본값: latest)
 }
 
 export interface CategoryModalProps {

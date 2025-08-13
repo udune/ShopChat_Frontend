@@ -12,12 +12,13 @@ export class ProductService {
   // 상품 목록 조회
   static async getProducts(
     page: number = 0,
-    size: number = 20
+    size: number = 20,
+    sort: string = "latest"
   ): Promise<ProductListResponse> {
     try {
       const response = await axiosInstance.get<
         ApiResponse<ProductListResponse>
-      >("/api/products", { params: { page, size } });
+      >("/api/products", { params: { page, size, sort } });
       return response.data.data;
     } catch (error: any) {
       throw error;
@@ -32,11 +33,13 @@ export class ProductService {
     page?: number;
     size?: number;
     storeId?: number;
+    sort?: string;
+    q?: string; // 키워드 검색 파라미터 추가 (API 명세서 기준)
   }): Promise<ProductListResponse> {
     try {
       const response = await axiosInstance.get<
         ApiResponse<ProductListResponse>
-      >("/api/products/filter", { params });
+      >("/api/products", { params });
       return response.data.data;
     } catch (error: any) {
       console.error("필터링된 상품 조회 실패:", error);

@@ -44,14 +44,26 @@ export class CategoryService {
   }
 
   static generateFilterUrl(params: CategoryFilterParams): string {
-    const queryParams = new URLSearchParams({
-      categoryId: params.categoryId.toString(),
-      minPrice: params.minPrice.toString(),
-      maxPrice: params.maxPrice.toString(),
-      page: (params.page || 0).toString(),
-      size: (params.size || 20).toString(),
-    });
-
+    const queryParams = new URLSearchParams();
+    
+    // 카테고리 ID는 필수
+    queryParams.set("categoryId", params.categoryId.toString());
+    
+    // 가격 범위 (0보다 큰 경우에만 추가)
+    if (params.minPrice > 0) {
+      queryParams.set("minPrice", params.minPrice.toString());
+    }
+    if (params.maxPrice < 1000000) {
+      queryParams.set("maxPrice", params.maxPrice.toString());
+    }
+    
+    // 페이지네이션 정보
+    queryParams.set("page", (params.page || 0).toString());
+    queryParams.set("size", (params.size || 20).toString());
+    
+    // 정렬 (기본값: latest)
+    queryParams.set("sort", params.sort || "latest");
+    
     // 스토어 ID가 있는 경우 추가
     if (params.storeId) {
       queryParams.set("storeId", params.storeId.toString());
