@@ -1,6 +1,8 @@
 export interface PaymentItem {
   id: string;
   productName: string;
+  gender?: "MEN" | "WOMEN" | "UNISEX"; // 성별 정보 추가
+  color?: string;                       // 색상 정보 추가
   size: string;
   discountPrice: number;
   productPrice: number;

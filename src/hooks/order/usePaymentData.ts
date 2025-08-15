@@ -133,6 +133,8 @@ export const usePaymentData = (): UsePaymentDataReturn => {
         const directOrderItems = locationState.directOrderItems.map((item: any) => ({
           id: `${item.productId}-${item.optionId}`,
           productName: item.productName,
+          gender: item.gender, // 성별 정보 추가
+          color: item.color,   // 색상 정보 추가
           size: item.size || "",
           discountPrice: item.discountPrice || item.price,
           productPrice: item.price || item.discountPrice,

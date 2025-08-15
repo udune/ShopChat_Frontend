@@ -97,8 +97,10 @@ export const SelectedOptions: React.FC<SelectedOptionsProps> = ({
         <SelectedOptionItem key={option.optionId}>
           {/* 옵션 정보 섹션 - 사이즈와 재고 세부 정보 표시 */}
           <OptionInfo>
-            {/* 사이즈 표시 - 선택된 상품 사이즈 옵션 표시 */}
-            <SizeText>사이즈 {option.size}</SizeText>
+            {/* 옵션 표시 - 선택된 상품 옵션 정보 표시 */}
+            <SizeText>
+              {option.gender === "MEN" ? "남성" : option.gender === "WOMEN" ? "여성" : "공용"} / {option.color} / {option.size}
+            </SizeText>
 
             {/* 낮은 재고 경고가 있는 재고 정보 */}
             <StockInfo $lowStock={option.stock < 5}>

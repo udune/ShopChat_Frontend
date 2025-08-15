@@ -10,7 +10,7 @@ import { useProductActions } from "../../hooks/products/useProductActions"; // �
 // 상품 상세 UI 컴포넌트들
 import { ProductImages } from "../../components/products/ProductImages"; // 상품 이미지 슬라이더
 import { ProductInfo } from "../../components/products/ProductInfo"; // 상품 기본 정보 (이름, 가격 등)
-import { SizeSelector } from "../../components/products/SizeSelector"; // 사이즈 선택 컴포넌트
+import { ModernOptionSelector } from "../../components/products/ModernOptionSelector"; // 모던 옵션 선택 컴포넌트 (성별, 색상, 사이즈)
 import { SelectedOptions } from "../../components/products/SelectedOptions"; // 선택된 옵션 표시 및 수량 조절
 import { ProductDescription } from "../../components/products/ProductDescription"; // 상품 상세 설명
 import { ProductReviews } from "../../components/review/ProductReviews"; // 상품 리뷰 섹션
@@ -59,13 +59,20 @@ const DetailPage: React.FC = () => {
 
   // 상품 옵션 선택 및 관리 훅
   const {
-    selectedOptions,      // 현재 선택된 옵션들 (사이즈, 수량 포함)
+    selectedOptions,      // 현재 선택된 옵션들 (성별, 색상, 사이즈, 수량 포함)
+    selectedGender,       // 선택된 성별
+    selectedColor,        // 선택된 색상
+    handleGenderSelect,   // 성별 선택 핸들러
+    handleColorSelect,    // 색상 선택 핸들러
     handleSizeSelect,     // 사이즈 선택 핸들러
     handleQuantityChange, // 수량 변경 핸들러
     handleRemoveOption,   // 선택된 옵션 제거 핸들러
     clearSelectedOptions, // 모든 선택 옵션 초기화
     getTotalQuantity,     // 전체 선택 수량 계산
     getTotalPrice,        // 전체 선택 가격 계산
+    getAvailableGenders,  // 선택 가능한 성별 목록
+    getAvailableColors,   // 선택 가능한 색상 목록
+    getAvailableSizes,    // 선택 가능한 사이즈 목록
   } = useProductOptions(product);
 
   // 장바구니 및 주문 액션 관리 훅
@@ -137,11 +144,18 @@ const DetailPage: React.FC = () => {
             getDiscountRate={() => getDiscountRate(product)}
           />
 
-          {/* 사이즈 선택 컴포넌트 */}
-          <SizeSelector
+          {/* 모던 옵션 선택 컴포넌트 (성별, 색상, 사이즈) */}
+          <ModernOptionSelector
             product={product}
             selectedOptions={selectedOptions}
+            selectedGender={selectedGender}
+            selectedColor={selectedColor}
+            onGenderSelect={handleGenderSelect}
+            onColorSelect={handleColorSelect}
             onSizeSelect={(optionId) => handleSizeSelect(optionId, handleError)}
+            getAvailableGenders={getAvailableGenders}
+            getAvailableColors={getAvailableColors}
+            getAvailableSizes={getAvailableSizes}
           />
 
           {/* 선택된 옵션 표시 및 수량 조절 */}

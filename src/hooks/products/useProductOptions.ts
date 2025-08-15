@@ -12,7 +12,9 @@ import { ProductDetail } from "types/products";
 // 선택된 옵션 정보 구조
 export interface SelectedOptions {
   optionId: number;  // 옵션 ID
+  gender: "MEN" | "WOMEN" | "UNISEX"; // 성별
   size: string;      // 사이즈 (예: "M", "L" 등)
+  color: string;     // 색상
   quantity: number;  // 선택된 수량
   price: number;     // 단가
   stock: number;     // 재고 수량
@@ -24,6 +26,10 @@ export interface SelectedOptions {
 export const useProductOptions = (product: ProductDetail | null) => {
   // 사용자가 선택한 옵션들의 목록
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptions[]>([]);
+  
+  // 옵션 선택 단계 상태
+  const [selectedGender, setSelectedGender] = useState<"MEN" | "WOMEN" | "UNISEX" | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
   /**
    * 사이즈 선택을 처리하는 함수
@@ -60,7 +66,9 @@ export const useProductOptions = (product: ProductDetail | null) => {
     // 새로운 옵션 객체 생성 (기본 수량 1개로 설정)
     const newOption: SelectedOptions = {
       optionId: option.optionId,
-      size: option.size.replace("SIZE_", ""),    // "SIZE_" 접두사 제거
+      gender: option.gender,                     // 성별 정보 추가
+      size: option.size,                         // 사이즈 정보
+      color: option.color,                       // 색상 정보 추가
       quantity: 1,                               // 기본 수량
       price: product.discountPrice,              // 할인가 사용
       stock: option.stock,
@@ -120,11 +128,30 @@ export const useProductOptions = (product: ProductDetail | null) => {
   };
 
   /**
+   * 성별을 선택하는 함수
+   */
+  const handleGenderSelect = (gender: "MEN" | "WOMEN" | "UNISEX") => {
+    setSelectedGender(gender);
+    setSelectedColor(null); // 성별 변경시 색상 초기화
+    setSelectedOptions([]); // 기존 선택 초기화
+  };
+
+  /**
+   * 색상을 선택하는 함수
+   */
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color);
+    setSelectedOptions([]); // 기존 선택 초기화
+  };
+
+  /**
    * 선택된 모든 옵션을 초기화하는 함수
    * 장바구니 추가 성공 후 등에 사용
    */
   const clearSelectedOptions = () => {
     setSelectedOptions([]);
+    setSelectedGender(null);
+    setSelectedColor(null);
   };
 
   /**
@@ -149,14 +176,53 @@ export const useProductOptions = (product: ProductDetail | null) => {
     );
   };
 
+  /**
+   * 선택 가능한 성별 목록 반환
+   */
+  const getAvailableGenders = () => {
+    if (!product) return [];
+    const genders = new Set(product.options.map(opt => opt.gender));
+    return Array.from(genders);
+  };
+
+  /**
+   * 선택된 성별에 따른 색상 목록 반환
+   */
+  const getAvailableColors = () => {
+    if (!product || !selectedGender) return [];
+    const colors = new Set(
+      product.options
+        .filter(opt => opt.gender === selectedGender)
+        .map(opt => opt.color)
+    );
+    return Array.from(colors);
+  };
+
+  /**
+   * 선택된 성별과 색상에 따른 사이즈 목록 반환
+   */
+  const getAvailableSizes = () => {
+    if (!product || !selectedGender || !selectedColor) return [];
+    return product.options
+      .filter(opt => opt.gender === selectedGender && opt.color === selectedColor)
+      .map(opt => ({ ...opt, sizeLabel: opt.size }));
+  };
+
   // 상품 옵션 관련 모든 상태와 함수를 반환
   return {
     selectedOptions,        // 선택된 옵션들의 배열
+    selectedGender,         // 선택된 성별
+    selectedColor,          // 선택된 색상
+    handleGenderSelect,     // 성별 선택 처리 함수
+    handleColorSelect,      // 색상 선택 처리 함수
     handleSizeSelect,       // 사이즈 선택 처리 함수
     handleQuantityChange,   // 수량 변경 처리 함수
     handleRemoveOption,     // 옵션 제거 함수
     clearSelectedOptions,   // 모든 옵션 초기화 함수
     getTotalQuantity,       // 총 수량 계산 함수
     getTotalPrice,          // 총 가격 계산 함수
+    getAvailableGenders,    // 선택 가능한 성별 목록
+    getAvailableColors,     // 선택 가능한 색상 목록
+    getAvailableSizes,      // 선택 가능한 사이즈 목록
   };
 };

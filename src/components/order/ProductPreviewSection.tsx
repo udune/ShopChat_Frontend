@@ -93,8 +93,14 @@ export const ProductPreviewSection: React.FC<ProductPreviewSectionProps> = ({
                 {/* 상품명 */}
                 <ProductName>{item.productName}</ProductName>
 
-                {/* 상품 세부 옵션 정보 (사이즈, 수량) */}
+                {/* 상품 세부 옵션 정보 (성별, 색상, 사이즈, 수량) */}
                 <ProductDetails>
+                  {item.gender && (
+                    <>
+                      {item.gender === "MEN" ? "남성" : item.gender === "WOMEN" ? "여성" : "공용"} | 
+                    </>
+                  )}
+                  {item.color && <>{item.color} | </>}
                   사이즈: {item.size} | 수량: {item.quantity}개
                 </ProductDetails>
               </ProductInfo>

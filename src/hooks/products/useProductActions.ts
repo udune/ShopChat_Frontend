@@ -130,8 +130,9 @@ export const useProductActions = (
           productName: product.name,
           price: product.price,
           discountPrice: product.discountPrice,
-          size: productOption?.size || "",
-          color: productOption?.color || "",
+          gender: option.gender,                     // 성별 정보 추가
+          size: option.size,                         // 사이즈 정보 (이미 선택된 옵션에서 가져옴)
+          color: option.color,                       // 색상 정보 (이미 선택된 옵션에서 가져옴)
           imageUrl: product.images?.[0]?.url || "",
         };
       });
