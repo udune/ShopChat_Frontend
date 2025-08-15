@@ -1,7 +1,5 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-// 공통 컴포넌트
-import PreparationNotice from "../../components/PreparationNotice"; // 준비중 안내 컴포넌트
 // 상품 관련 커스텀 훅
 import { useProductList } from "../../hooks/products/useProductList"; // 상품 목록 관리 훅
 // 상품 목록 UI 컴포넌트들
@@ -46,7 +44,7 @@ const Lists: React.FC = () => {
     filters, // 현재 필터 상태
     loadProducts, // 상품 목록을 다시 로드하는 함수
     handlePageChange, // 페이지 변경 핸들러
-    handleSortChange, // 정렬 변경 핸들러
+    handleSortChange: changeSortFromHook, // 정렬 변경 핸들러 (훅에서 제공)
     handleFiltersChange, // 필터 변경 핸들러
     retry, // 에러 발생 시 재시도 함수
   } = useProductList();
@@ -55,11 +53,12 @@ const Lists: React.FC = () => {
   const handleSortChange = (sort: string) => {
     const searchParams = new URLSearchParams(location.search);
     searchParams.set("sort", sort);
-    // 페이지를 0으로 초기화하고 싶다면 아래 줄 추가:
-    // searchParams.set("page", "0");
+    // 페이지를 0으로 초기화 (정렬 변경 시 첫 페이지로 이동)
+    searchParams.set("page", "0");
     navigate(`/products?${searchParams.toString()}`);
-    // 즉시 반영을 원하면 아래 주석 해제(선택):
-    // changeSortFromHook(sort);
+
+    // 즉시 반영을 위해 훅의 핸들러도 호출
+    changeSortFromHook(sort);
   };
 
   // URL에서 현재 적용된 필터 정보 추출 및 페이지 제목 생성
@@ -72,8 +71,14 @@ const Lists: React.FC = () => {
     const categoryId = searchParams.get("categoryId");
 
     if (q && q.trim().length > 0) {
-      // 필요시 카테고리도 함께 표시하려면 다음과 같이 확장 가능:
-      // if (categoryId) { ... }
+      // 검색어와 카테고리가 모두 있는 경우
+      if (categoryId) {
+        const category = CategoryService.DEFAULT_CATEGORIES.find(
+          (cat) => cat.categoryId === Number(categoryId)
+        );
+        const categoryName = category ? category.name : "카테고리";
+        return `"${q}" ${categoryName} 검색 결과`;
+      }
       return `"${q}" 검색 결과`;
     }
 
