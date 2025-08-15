@@ -32,6 +32,7 @@ export const useProductList = (pageSize: number = 9) => {
   const getFilterParamsFromUrl = () => {
     const searchParams = new URLSearchParams(location.search);
     return {
+      q: searchParams.get("q") || undefined, // 검색 키워드 파라미터 추가
       categoryId: searchParams.get("categoryId")
         ? Number(searchParams.get("categoryId"))
         : undefined,
@@ -59,18 +60,26 @@ export const useProductList = (pageSize: number = 9) => {
       setError(null); // 이전 에러 초기화
 
       const filterParams = getFilterParamsFromUrl();
-      const sortParam = sort || filterParams.sort || currentSort;
-      
-      // API 명세서에 따라 모든 요청은 /api/products 엔드포인트로 처리
+      const sortParam = sort ?? filterParams.sort ?? currentSort;
+
+      // 모든 파라미터를 포함한 요청 파라미터 구성
+      const requestParamsBase = {
+        ...filterParams,
+        page,
+        size: pageSize,
+        sort: sortParam,
+      };
+
       const requestParams = Object.fromEntries(
-        Object.entries({ 
-          ...filterParams, 
-          page, 
-          size: pageSize, 
-          sort: sortParam 
-        }).filter(([_, value]) => value !== undefined && value !== null)
+        Object.entries(requestParamsBase).filter(
+          ([_, value]) => value !== undefined && value !== null
+        )
       );
-      
+
+      // 디버깅용 로그 (필요 없으면 주석 처리 가능)
+      console.log("API 호출 파라미터:", requestParams);
+
+      // API 명세서에 따라 /api/products 엔드포인트에 필터/정렬/페이지 파라미터 전달
       const response = await ProductService.getFilteredProducts(requestParams);
 
       // 성공시 데이터 설정 (빈 배열로 기본값 설정)
