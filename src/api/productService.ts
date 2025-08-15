@@ -25,24 +25,25 @@ export class ProductService {
     }
   }
 
-  // 필터링된 상품 목록 조회
+  // 필터링된 상품 목록 조회 (검색 포함)
   static async getFilteredProducts(params: {
+    q?: string; // 검색 키워드
     categoryId?: number;
     minPrice?: number;
     maxPrice?: number;
     page?: number;
     size?: number;
     storeId?: number;
-    sort?: string;
-    q?: string; // 키워드 검색 파라미터 추가 (API 명세서 기준)
+    sort?: string; // 정렬 방식
   }): Promise<ProductListResponse> {
     try {
+      // API 명세서에 따라 /api/products 엔드포인트 사용
       const response = await axiosInstance.get<
         ApiResponse<ProductListResponse>
       >("/api/products", { params });
       return response.data.data;
     } catch (error: any) {
-      console.error("필터링된 상품 조회 실패:", error);
+      console.error("상품 조회 실패:", error);
       throw error;
     }
   }
