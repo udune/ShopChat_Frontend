@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import * as echarts from "echarts";
 import SellerOrdersPage from "../order/SellerOrdersPage";
+import StoreService from "../../api/storeService";
+import { SellerStore } from "../../types/products";
+import { toUrl } from "utils/common/images";
 
 const SellerMyPage: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [selectedPeriod, setSelectedPeriod] = useState("일간");
+  const [storeInfo, setStoreInfo] = useState<SellerStore | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const generateChartData = (
     period: string
@@ -29,6 +34,21 @@ const SellerMyPage: React.FC = () => {
 
     return { xAxisData, seriesData };
   };
+
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      try {
+        const store = await StoreService.getSellerStore();
+        setStoreInfo(store);
+      } catch (error) {
+        console.error("가게 정보 로드 실패:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStoreInfo();
+  }, []);
 
   useEffect(() => {
     const chartDom = document.getElementById("salesChart");
@@ -132,10 +152,22 @@ const SellerMyPage: React.FC = () => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center">
-                <i className="fas fa-user text-white text-lg"></i>
+                {storeInfo?.logo ? (
+                  <img
+                    src={toUrl(storeInfo.logo)}
+                    alt="가게 로고"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  <i className="fas fa-store text-white text-lg"></i>
+                )}
               </div>
               <div>
-                <h3 className="text-gray-800 font-semibold">스마트 펫샵</h3>
+                <h3 className="text-gray-800 font-semibold">
+                  {loading
+                    ? "로딩 중..."
+                    : storeInfo?.storeName || "가게명 없음"}
+                </h3>
                 <div className="flex items-center space-x-1">
                   <div className="flex text-yellow-500">
                     <i className="fas fa-star text-xs"></i>
@@ -207,7 +239,9 @@ const SellerMyPage: React.FC = () => {
                     대시보드
                   </h2>
                   <p className="text-gray-600">
-                    스마트한 쇼핑 경험을 위한 최고의 선택
+                    {loading
+                      ? "정보를 불러오는 중..."
+                      : storeInfo?.description || "가게 설명이 없습니다."}
                   </p>
                 </div>
 

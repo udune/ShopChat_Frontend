@@ -95,6 +95,16 @@ export interface Store {
   storeName: string;
 }
 
+export interface SellerStore {
+  storeId: number;
+  sellerId: number;
+  storeName: string;
+  description: string;
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
