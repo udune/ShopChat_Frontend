@@ -832,7 +832,9 @@ const Header: FC<HeaderProps> = ({ onMenuClick }) => {
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (search.trim()) {
-      navigate(`/search?q=${encodeURIComponent(search)}`);
+      // 검색어를 상품 목록 페이지로 전달
+      navigate(`/products?q=${encodeURIComponent(search.trim())}`);
+      setSearch(""); // 검색 후 입력창 초기화
     }
   };
 
@@ -890,15 +892,17 @@ const Header: FC<HeaderProps> = ({ onMenuClick }) => {
 
       <SearchSection>
         <SearchContainer>
-          <SearchInput
-            type="text"
-            placeholder="검색어를 입력하세요"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <SearchButton type="submit" onClick={handleSearch}>
-            <MagnifyingGlassIcon />
-          </SearchButton>
+          <form onSubmit={handleSearch} style={{ position: 'relative', width: '100%' }}>
+            <SearchInput
+              type="text"
+              placeholder="검색어를 입력하세요"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <SearchButton type="submit">
+              <MagnifyingGlassIcon />
+            </SearchButton>
+          </form>
         </SearchContainer>
       </SearchSection>
 
