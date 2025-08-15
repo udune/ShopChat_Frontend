@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { OrderListItem } from "types/order"; // 주문 아이템 타입
 import { OrderService } from "api/orderService"; // 주문 관련 API 서비스
 import { toUrl } from "utils/common/images"; // 이미지 URL 변환 유틸리티
+import Warning from "components/modal/Warning"; // 경고 모달 컴포넌트
 
 /**
  * 주문 상태 타입 정의
@@ -103,12 +104,6 @@ const FilterButton = styled.button<{ active: boolean }>`
   }
 `;
 
-const CountBadge = styled.span`
-  font-weight: 400;
-  color: #a3a3a3;
-  font-size: 14px;
-  margin-left: 4px;
-`;
 
 const SearchContainer = styled.div`
   margin-bottom: 18px;
@@ -243,6 +238,40 @@ const ErrorState = styled.div`
   font-size: 16px;
 `;
 
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+`;
+
+const ActionButton = styled.button<{ variant: 'cancel' | 'return' }>`
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  background-color: ${props => 
+    props.variant === 'cancel' ? '#fee2e2' : '#f3f4f6'
+  };
+  color: ${props => 
+    props.variant === 'cancel' ? '#dc2626' : '#374151'
+  };
+  
+  &:hover {
+    background-color: ${props => 
+      props.variant === 'cancel' ? '#fecaca' : '#e5e7eb'
+    };
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -296,23 +325,23 @@ const UserOrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null); // 에러 메시지
   const [totalPages, setTotalPages] = useState(0); // 전체 페이지 수
   const [totalElements, setTotalElements] = useState(0); // 전체 주문 수
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null); // 상태 업데이트 중인 주문 ID
+  
+  // 모달 상태 관리
+  const [warningModal, setWarningModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
-  const [allOrders, setAllOrders] = useState<OrderListItem[]>([]); // 상태별 카운트 계산용 전체 주문
   const itemsPerPage = 10; // 페이지당 표시할 주문 수
 
-  /**
-   * 상태별 카운트 계산을 위해 모든 주문을 가져오는 함수
-   * 필터 버튼 옆에 표시되는 숫자(배송중 3개, 배송완료 5개 등)를 위해 필요
-   */
-  const fetchAllOrders = async () => {
-    try {
-      // 상태 필터 없이 모든 주문을 가져와서 카운트 계산
-      const response = await OrderService.getOrders(0, 1000); // 큰 숫자로 전체 조회
-      setAllOrders(response.content);
-    } catch (error: any) {
-      console.error("Failed to fetch all orders:", error);
-    }
-  };
 
   /**
    * 페이지별 주문 목록을 가져오는 함수
@@ -346,7 +375,6 @@ const UserOrdersPage: React.FC = () => {
   // 컴포넌트 마운트 시 초기 데이터 로드
   useEffect(() => {
     fetchOrders(0, filter); // 첫 페이지 주문 목록 로드
-    fetchAllOrders(); // 카운트 계산용 전체 주문 로드
   }, []);
 
   // 필터 변경 시 첫 페이지부터 다시 로드
@@ -378,14 +406,56 @@ const UserOrdersPage: React.FC = () => {
     : orders;
 
   /**
-   * 특정 상태의 주문 개수를 반환하는 함수
-   * 필터 버튼 옆에 표시되는 카운트 계산용
-   * @param status - 카운트할 주문 상태
+   * 주문 상태 변경 확인 모달을 여는 함수
    */
-  const getOrderCountByStatus = (status: OrderStatus): number => {
-    if (status === "ALL") return allOrders.length; // 전체는 모든 주문 개수
-    return allOrders.filter((order) => order.status === status).length; // 특정 상태 주문 개수
+  const showStatusChangeModal = (orderId: number, newStatus: 'CANCELLED' | 'RETURNED') => {
+    const statusText = newStatus === 'CANCELLED' ? '취소' : '반품';
+    
+    setWarningModal({
+      open: true,
+      title: `주문 ${statusText}`,
+      message: `정말로 이 주문을 ${statusText}하시겠습니까?`,
+      onConfirm: () => handleStatusChange(orderId, newStatus)
+    });
   };
+
+  /**
+   * 주문 상태를 변경하는 함수 (취소/반품)
+   */
+  const handleStatusChange = async (orderId: number, newStatus: 'CANCELLED' | 'RETURNED') => {
+    setWarningModal(prev => ({ ...prev, open: false }));
+    
+    try {
+      setUpdatingOrderId(orderId);
+      await OrderService.updateUserOrderStatus(orderId, newStatus);
+      
+      // 주문 목록 다시 로드
+      await fetchOrders(currentPage - 1, filter);
+      
+      alert(`주문이 성공적으로 ${newStatus === 'CANCELLED' ? '취소' : '반품'}되었습니다.`);
+    } catch (error: any) {
+      console.error('Failed to update order status:', error);
+      const errorMessage = error.response?.data?.message || `주문 ${newStatus === 'CANCELLED' ? '취소' : '반품'}에 실패했습니다.`;
+      alert(errorMessage);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  /**
+   * 주문 상태에 따라 가능한 액션을 결정하는 함수
+   */
+  const getAvailableActions = (orderStatus: string) => {
+    switch (orderStatus) {
+      case 'ORDERED':
+        return ['CANCELLED']; // 주문완료 상태에서는 취소만 가능
+      case 'DELIVERED':
+        return ['RETURNED']; // 배송완료 상태에서는 반품만 가능
+      default:
+        return []; // 다른 상태에서는 액션 불가
+    }
+  };
+
 
   // 메인 렌더링: 주문 내역 페이지 UI
   return (
@@ -406,8 +476,6 @@ const UserOrdersPage: React.FC = () => {
               onClick={() => setFilter(status.key)} // 필터 변경
             >
               {status.label}
-              {/* 각 상태별 주문 개수 표시 */}
-              <CountBadge>{getOrderCountByStatus(status.key)}</CountBadge>
             </FilterButton>
           ))}
         </FilterContainer>
@@ -442,6 +510,9 @@ const UserOrdersPage: React.FC = () => {
                   <TableHeaderCell align="center" width={150}>
                     주문 상태
                   </TableHeaderCell>
+                  <TableHeaderCell align="center" width={120}>
+                    액션
+                  </TableHeaderCell>
                 </tr>
               </TableHeader>
               {/* 테이블 본문 */}
@@ -449,7 +520,7 @@ const UserOrdersPage: React.FC = () => {
                 {filteredOrders.length === 0 ? (
                   // 주문이 없을 때 빈 상태 표시
                   <tr>
-                    <EmptyState colSpan={4}>주문이 없습니다.</EmptyState>
+                    <EmptyState colSpan={5}>주문이 없습니다.</EmptyState>
                   </tr>
                 ) : (
                   // 주문 목록을 테이블 행으로 렌더링
@@ -494,11 +565,35 @@ const UserOrdersPage: React.FC = () => {
                         {order.finalPrice.toLocaleString()}원
                       </TableCell>
 
-                      {/* 주문 상태 배지 (읽기 전용) */}
+                      {/* 주문 상태 배지 */}
                       <TableCell align="center" width={150}>
                         <StatusBadge status={order.status}>
                           {statusLabels[order.status] || order.status}
                         </StatusBadge>
+                      </TableCell>
+
+                      {/* 액션 버튼들 (취소/반품) */}
+                      <TableCell align="center" width={120}>
+                        <ActionButtonContainer>
+                          {getAvailableActions(order.status).map((action) => (
+                            <ActionButton
+                              key={action}
+                              variant={action === 'CANCELLED' ? 'cancel' : 'return'}
+                              onClick={() => showStatusChangeModal(order.orderId, action as 'CANCELLED' | 'RETURNED')}
+                              disabled={updatingOrderId === order.orderId}
+                            >
+                              {updatingOrderId === order.orderId
+                                ? '처리중...'
+                                : action === 'CANCELLED'
+                                ? '주문취소'
+                                : '반품신청'
+                              }
+                            </ActionButton>
+                          ))}
+                          {getAvailableActions(order.status).length === 0 && (
+                            <span style={{ color: '#9ca3af', fontSize: '12px' }}>-</span>
+                          )}
+                        </ActionButtonContainer>
                       </TableCell>
                     </TableRow>
                   ))
@@ -539,6 +634,15 @@ const UserOrdersPage: React.FC = () => {
             </PaginationButton>
           </PaginationContainer>
         )}
+
+        {/* 경고 모달 */}
+        <Warning
+          open={warningModal.open}
+          title={warningModal.title}
+          message={warningModal.message}
+          onConfirm={warningModal.onConfirm}
+          onCancel={() => setWarningModal(prev => ({ ...prev, open: false }))}
+        />
       </Content>
     </Container>
   );

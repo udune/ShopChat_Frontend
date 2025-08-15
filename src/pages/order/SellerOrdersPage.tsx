@@ -103,12 +103,6 @@ const FilterButton = styled.button<{ active: boolean }>`
   }
 `;
 
-const CountBadge = styled.span`
-  font-weight: 400;
-  color: #a3a3a3;
-  font-size: 14px;
-  margin-left: 4px;
-`;
 
 const SearchContainer = styled.div`
   margin-bottom: 18px;
@@ -370,22 +364,8 @@ const SellerOrdersPage: React.FC = () => {
     ""
   ); // 일괄 변경할 상태
   const [isUpdating, setIsUpdating] = useState(false); // 상태 변경 중 여부
-  const [allOrders, setAllOrders] = useState<OrderListItem[]>([]); // 상태별 카운트 계산용 전체 주문
   const itemsPerPage = 10; // 페이지당 표시할 주문 수
 
-  /**
-   * 상태별 카운트 계산을 위해 모든 주문을 가져오는 함수
-   * 필터 버튼 옆에 표시되는 숫자(배송중 3개, 배송완료 5개 등)를 위해 필요
-   */
-  const fetchAllOrders = async () => {
-    try {
-      // 상태 필터 없이 모든 주문을 가져와서 카운트 계산
-      const response = await OrderService.getSellerOrders(0, 1000); // 큰 숫자로 전체 조회
-      setAllOrders(response.content);
-    } catch (error: any) {
-      console.error("Failed to fetch all orders:", error);
-    }
-  };
 
   /**
    * 페이지별 주문 목록을 가져오는 함수
@@ -419,7 +399,6 @@ const SellerOrdersPage: React.FC = () => {
   // 컴포넌트 마운트 시 초기 데이터 로드
   useEffect(() => {
     fetchOrders(0, filter); // 첫 페이지 주문 목록 로드
-    fetchAllOrders(); // 카운트 계산용 전체 주문 로드
   }, []);
 
   // 필터 변경 시 첫 페이지부터 다시 로드
@@ -450,15 +429,6 @@ const SellerOrdersPage: React.FC = () => {
       })
     : orders;
 
-  /**
-   * 특정 상태의 주문 개수를 반환하는 함수
-   * 필터 버튼 옆에 표시되는 카운트 계산용
-   * @param status - 카운트할 주문 상태
-   */
-  const getOrderCountByStatus = (status: OrderStatus): number => {
-    if (status === "ALL") return allOrders.length; // 전체는 모든 주문 개수
-    return allOrders.filter((order) => order.status === status).length; // 특정 상태 주문 개수
-  };
 
   /**
    * 개별 주문 선택/해제 처리 함수
@@ -525,9 +495,8 @@ const SellerOrdersPage: React.FC = () => {
       setSelectedOrders(new Set());
       setBulkStatusChange("");
 
-      // 서버에서 최신 데이터 다시 로드 (카운트 업데이트 포함)
+      // 서버에서 최신 데이터 다시 로드
       await fetchOrders(currentPage - 1, filter);
-      await fetchAllOrders();
     } catch (error: any) {
       console.error("Failed to bulk update order status:", error);
       setError("일괄 상태 변경에 실패했습니다.");
@@ -555,8 +524,6 @@ const SellerOrdersPage: React.FC = () => {
               onClick={() => setFilter(status.key)} // 필터 변경
             >
               {status.label}
-              {/* 각 상태별 주문 개수 표시 */}
-              <CountBadge>{getOrderCountByStatus(status.key)}</CountBadge>
             </FilterButton>
           ))}
         </FilterContainer>

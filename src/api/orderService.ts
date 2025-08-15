@@ -134,6 +134,21 @@ export class OrderService {
       throw error;
     }
   }
+
+  // 사용자가 자신의 주문 상태를 변경한다 (취소/반품)
+  static async updateUserOrderStatus(
+    orderId: number,
+    status: "CANCELLED" | "RETURNED"
+  ): Promise<{ orderId: number; status: string; updatedAt: string }> {
+    try {
+      const response = await axiosInstance.post<
+        ApiResponse<{ orderId: number; status: string; updatedAt: string }>
+      >(`/api/users/orders/${orderId}/status`, { status });
+      return response.data.data;
+    } catch (error: any) {
+      throw error;
+    }
+  }
 }
 
 export default OrderService;
