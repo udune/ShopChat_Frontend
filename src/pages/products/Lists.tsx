@@ -110,7 +110,7 @@ const Lists: React.FC = () => {
       <Header>
         <Title>{pageTitle}</Title>
       </Header>
-
+      
       {/* 정렬 버튼들 (최신순/인기순) */}
       <FilterButtons activeSort={currentSort} onSortChange={handleSortChange} />
 
