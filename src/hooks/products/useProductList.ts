@@ -99,6 +99,7 @@ export const useProductList = (pageSize: number = 9) => {
       setLoading(true); // 로딩 시작
       setError(null); // 이전 에러 초기화
 
+      // URL 파라미터와 필터 상태를 모두 고려한 파라미터 구성
       const urlParams = getFilterParamsFromUrl();
       const currentFilters = customFilters || filters;
       const sortParam = sort || currentFilters.sort || currentSort;
@@ -123,6 +124,10 @@ export const useProductList = (pageSize: number = 9) => {
         )
       );
 
+      // 디버깅용 로그
+      console.log("API 호출 파라미터:", requestParams);
+
+      // API 명세서에 따라 /api/products 엔드포인트에 필터/정렬/페이지 파라미터 전달
       const response = await ProductService.getFilteredProducts(requestParams);
 
       // 성공시 데이터 설정 (빈 배열로 기본값 설정)

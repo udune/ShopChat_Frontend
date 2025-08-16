@@ -34,7 +34,7 @@ export class ProductService {
     page?: number;
     size?: number;
     storeId?: number;
-    sort?: string;
+    sort?: string; // 정렬 방식
     colors?: string[]; // 색상 필터
     sizes?: string[]; // 사이즈 필터
     genders?: string[]; // 성별 필터
@@ -68,6 +68,7 @@ export class ProductService {
 
       console.log("API 요청 파라미터:", cleanParams); // 디버깅용
 
+      // API 명세서에 따라 /api/products 엔드포인트 사용
       const response = await axiosInstance.get<
         ApiResponse<ProductListResponse>
       >("/api/products", {

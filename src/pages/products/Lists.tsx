@@ -44,21 +44,23 @@ const Lists: React.FC = () => {
     filters, // 현재 필터 상태
     loadProducts, // 상품 목록을 다시 로드하는 함수
     handlePageChange, // 페이지 변경 핸들러
-    handleSortChange: changeSortFromHook, // 정렬 변경 핸들러 (훅에서 제공)
+    handleSortChange: handleSortChangeFromHook, // 훅에서 제공하는 정렬 변경 핸들러 (이름 충돌 방지)
     handleFiltersChange, // 필터 변경 핸들러
     retry, // 에러 발생 시 재시도 함수
   } = useProductList();
 
-  // 정렬 변경 핸들러 (URL 주도)
+  // 정렬 변경 핸들러 (URL 주도 + 훅 연동)
   const handleSortChange = (sort: string) => {
+    // URL 파라미터 업데이트
     const searchParams = new URLSearchParams(location.search);
     searchParams.set("sort", sort);
-    // 페이지를 0으로 초기화 (정렬 변경 시 첫 페이지로 이동)
-    searchParams.set("page", "0");
+
+    // 정렬 변경 시 첫 페이지로 이동
+    searchParams.delete("page");
     navigate(`/products?${searchParams.toString()}`);
 
-    // 즉시 반영을 위해 훅의 핸들러도 호출
-    changeSortFromHook(sort);
+    // 훅의 정렬 변경 핸들러도 호출하여 즉시 반영
+    handleSortChangeFromHook(sort);
   };
 
   // URL에서 현재 적용된 필터 정보 추출 및 페이지 제목 생성
