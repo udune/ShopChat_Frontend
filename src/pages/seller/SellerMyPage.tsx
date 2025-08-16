@@ -4,13 +4,14 @@ import SellerOrdersPage from "../order/SellerOrdersPage";
 import StoreService from "../../api/storeService";
 import { SellerStore } from "../../types/products";
 import { toUrl } from "utils/common/images";
-import SellerProductManagePage from "./SellerProductManagePage";
+import { useDashboardStats } from "../../hooks/seller/useDashboardStats";
 
 const SellerMyPage: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [selectedPeriod, setSelectedPeriod] = useState("일간");
   const [storeInfo, setStoreInfo] = useState<SellerStore | null>(null);
   const [loading, setLoading] = useState(true);
+  const { stats, recentOrders, loading: statsLoading, error: statsError } = useDashboardStats();
 
   const generateChartData = (
     period: string
@@ -18,17 +19,22 @@ const SellerMyPage: React.FC = () => {
     let xAxisData: string[] = [];
     let seriesData: number[] = [];
 
+    // Mock 데이터로 현실적인 매출 패턴 생성
+    // 실제 API가 준비되면 대체 가능
     switch (period) {
       case "일간":
         xAxisData = ["09:00", "12:00", "15:00", "18:00", "21:00"];
+        // 일반적인 일일 매출 패턴: 오후와 저녁에 높은 매출
         seriesData = [120000, 180000, 150000, 280000, 220000];
         break;
       case "주간":
         xAxisData = ["월", "화", "수", "목", "금", "토", "일"];
+        // 주말에 높은 매출 패턴
         seriesData = [850000, 920000, 880000, 950000, 1020000, 1150000, 980000];
         break;
       case "월간":
         xAxisData = ["1주", "2주", "3주", "4주"];
+        // 월 말에 높은 매출 패턴 (급여일 후 소비 증가)
         seriesData = [3800000, 4200000, 3900000, 4500000];
         break;
     }
@@ -52,6 +58,9 @@ const SellerMyPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // 대시보드가 활성 상태일 때만 차트 생성
+    if (activeMenu !== "dashboard") return;
+    
     const chartDom = document.getElementById("salesChart");
     if (!chartDom) return;
 
@@ -142,7 +151,7 @@ const SellerMyPage: React.FC = () => {
     return () => {
       myChart.dispose();
     };
-  }, [selectedPeriod]);
+  }, [selectedPeriod, activeMenu]); // activeMenu 의존성 추가
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-100">
@@ -231,8 +240,6 @@ const SellerMyPage: React.FC = () => {
         <main className="flex-1">
           {activeMenu === "orders" ? (
             <SellerOrdersPage />
-          ) : activeMenu === "products" ? (
-            <SellerProductManagePage />
           ) : (
             <div className="p-8">
               <div className="max-w-7xl mx-auto">
@@ -250,64 +257,101 @@ const SellerMyPage: React.FC = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  {[
-                    {
-                      title: "오늘의 매출",
-                      value: "₩2,450,000",
-                      change: "+12.5%",
-                      icon: "fas fa-won-sign",
-                      color: "from-green-400 to-green-600",
-                    },
-                    {
-                      title: "신규 주문",
-                      value: "24",
-                      change: "+8.2%",
-                      icon: "fas fa-shopping-bag",
-                      color: "from-blue-400 to-blue-600",
-                    },
-                    {
-                      title: "배송 중",
-                      value: "18",
-                      change: "-2.1%",
-                      icon: "fas fa-truck",
-                      color: "from-orange-400 to-orange-600",
-                    },
-                    {
-                      title: "문의/리뷰",
-                      value: "7",
-                      change: "+15.3%",
-                      icon: "fas fa-comment",
-                      color: "from-purple-400 to-purple-600",
-                    },
-                  ].map((stat, index) => (
-                    <div
-                      key={index}
-                      className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div
-                          className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center`}
-                        >
-                          <i className={`${stat.icon} text-white text-lg`}></i>
+                  {statsLoading ? (
+                    // Loading skeleton
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm animate-pulse"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                          <div className="w-16 h-4 bg-gray-200 rounded"></div>
                         </div>
-                        <span
-                          className={`text-sm font-medium ${
-                            stat.change.startsWith("+")
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {stat.change}
-                        </span>
+                        <div className="w-20 h-4 bg-gray-200 rounded mb-1"></div>
+                        <div className="w-24 h-8 bg-gray-200 rounded"></div>
                       </div>
-                      <h3 className="text-gray-600 text-sm mb-1">
-                        {stat.title}
-                      </h3>
-                      <p className="text-2xl font-bold text-gray-800">
-                        {stat.value}
-                      </p>
+                    ))
+                  ) : statsError ? (
+                    <div className="col-span-4 text-center text-red-600 py-8">
+                      {statsError}
                     </div>
-                  ))}
+                  ) : (
+                    [
+                      {
+                        title: "매출 현황",
+                        mainLabel: "오늘",
+                        mainValue: `₩${stats.todaySales.toLocaleString()}`,
+                        subLabel: "이번 주",
+                        subValue: `₩${stats.weeklySales.toLocaleString()}`,
+                        icon: "fas fa-won-sign",
+                        color: "from-green-400 to-green-600",
+                      },
+                      {
+                        title: "주문 현황",
+                        mainLabel: "신규",
+                        mainValue: stats.newOrdersCount.toString(),
+                        subLabel: "전체",
+                        subValue: stats.totalOrdersCount.toString(),
+                        icon: "fas fa-shopping-bag",
+                        color: "from-blue-400 to-blue-600",
+                      },
+                      {
+                        title: "배송 현황",
+                        mainLabel: "배송 중",
+                        mainValue: stats.shippingCount.toString(),
+                        subLabel: "배송 완료",
+                        subValue: stats.deliveredCount.toString(),
+                        icon: "fas fa-truck",
+                        color: "from-orange-400 to-orange-600",
+                      },
+                      {
+                        title: "리뷰 현황",
+                        mainLabel: "신규",
+                        mainValue: stats.newReviewsCount.toString(),
+                        subLabel: "전체",
+                        subValue: stats.totalReviewsCount.toString(),
+                        icon: "fas fa-star",
+                        color: "from-purple-400 to-purple-600",
+                      },
+                    ].map((stat, index) => (
+                      <div
+                        key={index}
+                        className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div
+                            className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center`}
+                          >
+                            <i className={`${stat.icon} text-white text-lg`}></i>
+                          </div>
+                        </div>
+                        <h3 className="text-gray-600 text-sm mb-3 font-medium">
+                          {stat.title}
+                        </h3>
+                        
+                        {/* 주요 지표 */}
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500">{stat.mainLabel}</span>
+                          </div>
+                          <p className="text-2xl font-bold text-gray-800">
+                            {stat.mainValue}
+                          </p>
+                        </div>
+                        
+                        {/* 보조 지표 */}
+                        <div className="pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">{stat.subLabel}</span>
+                            <span className="text-sm font-semibold text-gray-600">
+                              {stat.subValue}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Charts and Recent Activity */}
@@ -346,52 +390,71 @@ const SellerMyPage: React.FC = () => {
                       최근 주문
                     </h3>
                     <div className="space-y-4">
-                      {[
-                        {
-                          id: "#12345",
-                          product: "프리미엄 강아지 사료 2kg",
-                          amount: "₩45,000",
-                          status: "배송중",
-                        },
-                        {
-                          id: "#12346",
-                          product: "고양이 장난감 세트",
-                          amount: "₩28,000",
-                          status: "주문완료",
-                        },
-                        {
-                          id: "#12347",
-                          product: "펫 캐리어 백",
-                          amount: "₩85,000",
-                          status: "배송준비",
-                        },
-                        {
-                          id: "#12348",
-                          product: "강아지 목줄 세트",
-                          amount: "₩32,000",
-                          status: "배송중",
-                        },
-                      ].map((order) => (
-                        <div
-                          key={order.id}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <p className="text-gray-800 font-medium text-sm">
-                              {order.product}
-                            </p>
-                            <p className="text-gray-500 text-xs">{order.id}</p>
+                      {statsLoading ? (
+                        // Loading skeleton for recent orders
+                        Array.from({ length: 4 }).map((_, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg animate-pulse"
+                          >
+                            <div className="flex-1">
+                              <div className="w-48 h-4 bg-gray-200 rounded mb-1"></div>
+                              <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                            </div>
+                            <div className="text-right">
+                              <div className="w-20 h-4 bg-gray-200 rounded mb-1"></div>
+                              <div className="w-16 h-5 bg-gray-200 rounded"></div>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-gray-800 font-semibold text-sm">
-                              {order.amount}
-                            </p>
-                            <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">
-                              {order.status}
-                            </span>
-                          </div>
+                        ))
+                      ) : recentOrders.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <i className="fas fa-shopping-cart text-4xl mb-4 text-gray-300"></i>
+                          <p>최근 주문이 없습니다.</p>
                         </div>
-                      ))}
+                      ) : (
+                        recentOrders.map((order) => (
+                          <div
+                            key={order.orderId}
+                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3 flex-1">
+                              {order.imageUrl && (
+                                <img
+                                  src={toUrl(order.imageUrl)}
+                                  alt={order.productName}
+                                  className="w-12 h-12 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    e.currentTarget.src = toUrl("images/common/no-image.png");
+                                  }}
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p className="text-gray-800 font-medium text-sm">
+                                  {order.productName}
+                                </p>
+                                <p className="text-gray-500 text-xs">#{order.orderId}</p>
+                                <p className="text-gray-400 text-xs">
+                                  {new Date(order.orderedAt).toLocaleDateString('ko-KR', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-gray-800 font-semibold text-sm">
+                                ₩{order.finalPrice.toLocaleString()}
+                              </p>
+                              <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">
+                                {order.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
