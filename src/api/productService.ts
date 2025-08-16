@@ -118,14 +118,24 @@ export class ProductService {
 
       // 상품 정보 (images 필드 제외)
       const { images, ...productInfo } = productData;
+
+      // 백엔드 DTO에 맞는 images 배열 생성
+      const imageRequests = images
+        .filter((img) => img.file || img.url) // 유효한 이미지만 필터링
+        .map((img) => ({
+          url: img.url,
+          type: img.isMain || img.type === "MAIN" ? "MAIN" : "DETAIL",
+        }));
+
       const productJson = {
         ...productInfo,
-        options: productInfo.options.map(option => ({
+        images: imageRequests, // 백엔드가 기대하는 형태로 전송
+        options: productInfo.options.map((option) => ({
           gender: option.gender,
-          size: option.size.replace('SIZE_', ''), // SIZE_250 -> 250
+          size: option.size.replace("SIZE_", ""), // SIZE_250 -> 250
           color: option.color,
-          stock: option.stock
-        }))
+          stock: option.stock,
+        })),
       };
 
       formData.append(
@@ -139,7 +149,7 @@ export class ProductService {
       const mainImageFiles: File[] = [];
       const detailImageFiles: File[] = [];
 
-      images.forEach(image => {
+      images.forEach((image) => {
         if (image.file) {
           if (image.isMain || image.type === "MAIN") {
             mainImageFiles.push(image.file);
@@ -149,12 +159,12 @@ export class ProductService {
         }
       });
 
-      // 이미지 파일 추가
-      mainImageFiles.forEach(file => {
+      // 이미지 파일 추가 (파일이 있을 때만)
+      mainImageFiles.forEach((file) => {
         formData.append("mainImages", file);
       });
 
-      detailImageFiles.forEach(file => {
+      detailImageFiles.forEach((file) => {
         formData.append("detailImages", file);
       });
 
@@ -183,12 +193,12 @@ export class ProductService {
       const { images, options, ...productInfo } = productData;
       const productJson = {
         ...productInfo,
-        options: options?.map(option => ({
+        options: options?.map((option) => ({
           gender: option.gender,
-          size: option.size?.replace('SIZE_', ''), // SIZE_250 -> 250
+          size: option.size?.replace("SIZE_", ""), // SIZE_250 -> 250
           color: option.color,
-          stock: option.stock
-        }))
+          stock: option.stock,
+        })),
       };
 
       formData.append(
@@ -203,7 +213,7 @@ export class ProductService {
         const mainImageFiles: File[] = [];
         const detailImageFiles: File[] = [];
 
-        images.forEach(image => {
+        images.forEach((image) => {
           if (image.file) {
             if (image.isMain || image.type === "MAIN") {
               mainImageFiles.push(image.file);
@@ -214,11 +224,11 @@ export class ProductService {
         });
 
         // 이미지 파일 추가
-        mainImageFiles.forEach(file => {
+        mainImageFiles.forEach((file) => {
           formData.append("mainImages", file);
         });
 
-        detailImageFiles.forEach(file => {
+        detailImageFiles.forEach((file) => {
           formData.append("detailImages", file);
         });
       }

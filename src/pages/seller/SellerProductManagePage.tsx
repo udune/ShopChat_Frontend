@@ -535,6 +535,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [warningOpen, setWarningOpen] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // 사용된 옵션 조합을 추적
@@ -565,39 +567,52 @@ const ProductModal: React.FC<ProductModalProps> = ({
       if (editProduct) {
         try {
           // 상품 상세 정보 로드
-          const productDetail = await ProductService.getProduct(editProduct.productId);
-          
+          const productDetail = await ProductService.getProduct(
+            editProduct.productId
+          );
+
           // 이미지 정보 구성
-          const images: ProductImageRequest[] = productDetail.images.map((img, index) => ({
-            url: img.url,
-            isMain: index === 0 || img.type === "MAIN",
-            displayOrder: index + 1,
-            type: img.type as "MAIN" | "DETAIL",
-            imageId: img.imageId
-          }));
+          const images: ProductImageRequest[] = productDetail.images.map(
+            (img, index) => ({
+              url: img.url,
+              isMain: index === 0 || img.type === "MAIN",
+              displayOrder: index + 1,
+              type: img.type as "MAIN" | "DETAIL",
+              imageId: img.imageId,
+            })
+          );
 
           // 첫 번째 이미지가 없으면 기본 이미지 추가
           if (images.length === 0) {
             images.push({
-              url: productDetail.images.length > 0 ? productDetail.images[0].url : "",
+              url:
+                productDetail.images.length > 0
+                  ? productDetail.images[0].url
+                  : "",
               isMain: true,
               displayOrder: 1,
               type: "MAIN" as "MAIN" | "DETAIL",
-              imageId: productDetail.images.length > 0 ? productDetail.images[0].imageId : undefined
+              imageId:
+                productDetail.images.length > 0
+                  ? productDetail.images[0].imageId
+                  : undefined,
             });
           }
 
           // 옵션 정보 구성 - 사이즈 값을 SIZE_ 접두어 형태로 변환
-          const options: ProductOptionRequest[] = productDetail.options.map(option => ({
-            optionId: option.optionId,
-            gender: option.gender,
-            color: option.color as ColorType,
-            size: `SIZE_${option.size}` as SizeType,
-            stock: option.stock
-          }));
+          const options: ProductOptionRequest[] = productDetail.options.map(
+            (option) => ({
+              optionId: option.optionId,
+              gender: option.gender,
+              color: option.color as ColorType,
+              size: `SIZE_${option.size}` as SizeType,
+              stock: option.stock,
+            })
+          );
 
           // 할인 타입 변환
-          let discountType: "RATE_DISCOUNT" | "FIXED_DISCOUNT" | "NONE" = "NONE";
+          let discountType: "RATE_DISCOUNT" | "FIXED_DISCOUNT" | "NONE" =
+            "NONE";
           if (productDetail.discountType === "RATE_DISCOUNT") {
             discountType = "RATE_DISCOUNT";
           } else if (productDetail.discountType === "FIXED_DISCOUNT") {
@@ -607,16 +622,28 @@ const ProductModal: React.FC<ProductModalProps> = ({
           setFormData({
             name: productDetail.name,
             price: productDetail.price,
-            categoryId: productDetail.categoryType ? 
-              categories.find(cat => cat.type === productDetail.categoryType)?.categoryId || categories[0]?.categoryId || 1 :
-              categories[0]?.categoryId || 1,
+            categoryId: productDetail.categoryType
+              ? categories.find(
+                  (cat) => cat.type === productDetail.categoryType
+                )?.categoryId ||
+                categories[0]?.categoryId ||
+                1
+              : categories[0]?.categoryId || 1,
             description: productDetail.description,
             discountType: discountType,
             discountValue: productDetail.discountValue || 0,
             images: images,
-            options: options.length > 0 ? options : [
-              { gender: "UNISEX", color: "BLACK", size: "SIZE_260", stock: 0 }
-            ],
+            options:
+              options.length > 0
+                ? options
+                : [
+                    {
+                      gender: "UNISEX",
+                      color: "BLACK",
+                      size: "SIZE_260",
+                      stock: 0,
+                    },
+                  ],
           });
         } catch (error) {
           console.error("상품 상세 정보 로드 실패:", error);
@@ -670,10 +697,18 @@ const ProductModal: React.FC<ProductModalProps> = ({
       newErrors.price = "가격은 1000원 이상이어야 합니다.";
     if (!formData.description.trim())
       newErrors.description = "상품 설명을 입력해주세요.";
-    if (formData.images.length === 0)
+
+    // 이미지 검증 로직 수정
+    const validImages = formData.images.filter((img) => img.file || img.url);
+    if (validImages.length === 0) {
       newErrors.images = "최소 1개의 이미지가 필요합니다.";
-    if (!formData.images.some((img) => img.isMain))
-      newErrors.mainImage = "메인 이미지를 선택해주세요.";
+    } else {
+      // 유효한 이미지 중에서 메인 이미지 체크
+      if (!validImages.some((img) => img.isMain)) {
+        newErrors.mainImage = "메인 이미지를 선택해주세요.";
+      }
+    }
+
     if (formData.options.length === 0)
       newErrors.options = "최소 1개의 옵션이 필요합니다.";
 
@@ -722,13 +757,13 @@ const ProductModal: React.FC<ProductModalProps> = ({
         type: "DETAIL" as "MAIN" | "DETAIL",
       },
     ];
-    
+
     // 첫 번째 이미지는 항상 메인으로 설정
     if (newImages.length > 0) {
       newImages[0].isMain = true;
-      newImages.slice(1).forEach(img => img.isMain = false);
+      newImages.slice(1).forEach((img) => (img.isMain = false));
     }
-    
+
     setFormData({ ...formData, images: newImages });
   };
 
@@ -757,7 +792,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
       // 첫 번째 이미지는 항상 메인으로 설정
       if (updatedImages.length > 0) {
         updatedImages[0].isMain = true;
-        updatedImages.slice(1).forEach(img => img.isMain = false);
+        updatedImages.slice(1).forEach((img) => (img.isMain = false));
       }
 
       setFormData({ ...formData, images: updatedImages });
@@ -793,7 +828,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
         options: [...formData.options, availableOption],
       });
     } else {
-      alert("더 이상 추가할 수 있는 옵션 조합이 없습니다.");
+      setWarningMessage("더 이상 추가할 수 있는 옵션 조합이 없습니다.");
+      setWarningOpen(true);
     }
   };
 
@@ -1059,7 +1095,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                         </RemoveButton>
                       )}
                     </ImageTypeRow>
-
                   </ImageCard>
                 ))}
               </ImageGrid>
@@ -1179,6 +1214,15 @@ const ProductModal: React.FC<ProductModalProps> = ({
           </ActionButton>
         </ModalFooter>
       </ModalContent>
+
+      {/* Warning Modal */}
+      <Warning
+        open={warningOpen}
+        title="알림"
+        message={warningMessage}
+        onConfirm={() => setWarningOpen(false)}
+        onCancel={() => setWarningOpen(false)}
+      />
     </Modal>
   );
 };
@@ -1192,6 +1236,8 @@ const SellerProductManagePage: React.FC = () => {
   const [editProduct, setEditProduct] = useState<ProductListItem | null>(null);
   const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [errorWarningOpen, setErrorWarningOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(0);
@@ -1288,7 +1334,8 @@ const SellerProductManagePage: React.FC = () => {
       loadProducts(currentPage); // 현재 페이지 유지하며 목록 새로고침
     } catch (error) {
       console.error("상품 저장 실패:", error);
-      alert("상품 저장에 실패했습니다.");
+      setErrorMessage("상품 저장에 실패했습니다.");
+      setErrorWarningOpen(true);
     }
   };
 
@@ -1308,7 +1355,8 @@ const SellerProductManagePage: React.FC = () => {
         setProductToDelete(null);
       } catch (error) {
         console.error("상품 삭제 실패:", error);
-        alert("상품 삭제에 실패했습니다.");
+        setErrorMessage("상품 삭제에 실패했습니다.");
+        setErrorWarningOpen(true);
       }
     }
   };
@@ -1458,7 +1506,9 @@ const SellerProductManagePage: React.FC = () => {
                           </ActionButton>
                           <ActionButton
                             variant="danger"
-                            onClick={() => handleDeleteProduct(product.productId)}
+                            onClick={() =>
+                              handleDeleteProduct(product.productId)
+                            }
                           >
                             <i className="fas fa-trash"></i>
                           </ActionButton>
@@ -1545,6 +1595,15 @@ const SellerProductManagePage: React.FC = () => {
         message="정말로 이 상품을 삭제하시겠습니까? 삭제된 상품은 복구할 수 없습니다."
         onConfirm={confirmDeleteProduct}
         onCancel={cancelDeleteProduct}
+      />
+
+      {/* Error Warning Modal */}
+      <Warning
+        open={errorWarningOpen}
+        title="오류"
+        message={errorMessage}
+        onConfirm={() => setErrorWarningOpen(false)}
+        onCancel={() => setErrorWarningOpen(false)}
       />
     </ManagementContainer>
   );
