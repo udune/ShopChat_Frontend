@@ -5,6 +5,7 @@ import {
   CreateProductRequest,
   ProductDetail,
   ProductListResponse,
+  ProductListItem,
   UpdateProductRequest,
 } from "types/products";
 
@@ -113,9 +114,57 @@ export class ProductService {
     productData: CreateProductRequest
   ): Promise<{ productId: number }> {
     try {
+      const formData = new FormData();
+
+      // 상품 정보 (images 필드 제외)
+      const { images, ...productInfo } = productData;
+      const productJson = {
+        ...productInfo,
+        options: productInfo.options.map(option => ({
+          gender: option.gender,
+          size: option.size.replace('SIZE_', ''), // SIZE_250 -> 250
+          color: option.color,
+          stock: option.stock
+        }))
+      };
+
+      formData.append(
+        "product",
+        new Blob([JSON.stringify(productJson)], {
+          type: "application/json",
+        })
+      );
+
+      // 이미지 파일들 분리
+      const mainImageFiles: File[] = [];
+      const detailImageFiles: File[] = [];
+
+      images.forEach(image => {
+        if (image.file) {
+          if (image.isMain || image.type === "MAIN") {
+            mainImageFiles.push(image.file);
+          } else {
+            detailImageFiles.push(image.file);
+          }
+        }
+      });
+
+      // 이미지 파일 추가
+      mainImageFiles.forEach(file => {
+        formData.append("mainImages", file);
+      });
+
+      detailImageFiles.forEach(file => {
+        formData.append("detailImages", file);
+      });
+
       const response = await axiosInstance.post<
         ApiResponse<{ productId: number }>
-      >("/api/seller/products", productData);
+      >("/api/seller/products", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return response.data.data;
     } catch (error: any) {
       throw error;
@@ -128,9 +177,60 @@ export class ProductService {
     productData: UpdateProductRequest
   ): Promise<void> {
     try {
+      const formData = new FormData();
+
+      // 상품 정보 (images 필드 제외)
+      const { images, options, ...productInfo } = productData;
+      const productJson = {
+        ...productInfo,
+        options: options?.map(option => ({
+          gender: option.gender,
+          size: option.size?.replace('SIZE_', ''), // SIZE_250 -> 250
+          color: option.color,
+          stock: option.stock
+        }))
+      };
+
+      formData.append(
+        "product",
+        new Blob([JSON.stringify(productJson)], {
+          type: "application/json",
+        })
+      );
+
+      // 이미지 파일들 분리 (수정 시에도 새 이미지가 있을 경우)
+      if (images && images.length > 0) {
+        const mainImageFiles: File[] = [];
+        const detailImageFiles: File[] = [];
+
+        images.forEach(image => {
+          if (image.file) {
+            if (image.isMain || image.type === "MAIN") {
+              mainImageFiles.push(image.file);
+            } else {
+              detailImageFiles.push(image.file);
+            }
+          }
+        });
+
+        // 이미지 파일 추가
+        mainImageFiles.forEach(file => {
+          formData.append("mainImages", file);
+        });
+
+        detailImageFiles.forEach(file => {
+          formData.append("detailImages", file);
+        });
+      }
+
       await axiosInstance.put<ApiResponse<null>>(
         `/api/seller/products/${productId}`,
-        productData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
     } catch (error: any) {
       console.error("상품 수정 실패:", error);
@@ -154,10 +254,26 @@ export class ProductService {
   static async getSellerProducts(
     page: number = 0,
     size: number = 20
-  ): Promise<ProductListResponse> {
+  ): Promise<{
+    content: ProductListItem[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+    first: boolean;
+    last: boolean;
+  }> {
     try {
       const response = await axiosInstance.get<
-        ApiResponse<ProductListResponse>
+        ApiResponse<{
+          content: ProductListItem[];
+          totalElements: number;
+          totalPages: number;
+          size: number;
+          number: number;
+          first: boolean;
+          last: boolean;
+        }>
       >("/api/seller/products", { params: { page, size } });
       return response.data.data;
     } catch (error: any) {

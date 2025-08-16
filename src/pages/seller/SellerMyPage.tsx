@@ -4,6 +4,7 @@ import SellerOrdersPage from "../order/SellerOrdersPage";
 import StoreService from "../../api/storeService";
 import { SellerStore } from "../../types/products";
 import { toUrl } from "utils/common/images";
+import SellerProductManagePage from "./SellerProductManagePage";
 
 const SellerMyPage: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -230,6 +231,8 @@ const SellerMyPage: React.FC = () => {
         <main className="flex-1">
           {activeMenu === "orders" ? (
             <SellerOrdersPage />
+          ) : activeMenu === "products" ? (
+            <SellerProductManagePage />
           ) : (
             <div className="p-8">
               <div className="max-w-7xl mx-auto">
