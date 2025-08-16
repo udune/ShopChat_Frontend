@@ -30,6 +30,7 @@
 import React from "react"; // 컴포넌트 생성을 위한 핵심 React 라이브러리
 import { ProductListItem } from "types/products"; // 상품 목록 항목 데이터 구조를 위한 TypeScript 인터페이스
 import { toUrl } from "../../utils/common/images"; // 이미지 경로를 전체 URL로 변환하는 유틸리티 함수
+import { WishlistButton } from "./WishlistButton"; // 인터랙티브한 찜하기 버튼 컴포넌트
 import {
   ProductCard as StyledProductCard,
   ProductImage,
@@ -39,7 +40,6 @@ import {
   PriceSection,
   DiscountPrice,
   OriginalPrice,
-  WishCount,
 } from "../../pages/products/Lists.styles"; // 상품 카드 UI 요소를 위한 스타일된 컴포넌트
 
 /**
@@ -99,12 +99,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </PriceSection>
 
-        {/* 위시리스트 수 섹션 - 상품 인기도/소셜 증명 표시 */}
-        <WishCount>
-          <span>❤️</span> {/* 시각적 매력을 위한 하트 이모지 */}
-          <span>{product.wishNumber}</span>{" "}
-          {/* 이 상품을 위시리스트에 추가한 사용자 수 */}
-        </WishCount>
+        {/* 위시리스트 버튼 - 인터랙티브한 찜하기 기능과 소셜 증명 표시 */}
+        <WishlistButton
+          productId={product.productId}
+          wishCount={product.wishNumber}
+          size="small"
+          showCount={true}
+        />
       </ProductInfo>
     </StyledProductCard>
   );

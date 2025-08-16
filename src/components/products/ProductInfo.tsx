@@ -30,6 +30,7 @@
 
 import React from "react"; // 컴포넌트 생성을 위한 핵심 React 라이브러리
 import { ProductDetail } from "types/products"; // 상세 상품 데이터 구조를 위한 TypeScript 인터페이스
+import { WishlistButton } from "./WishlistButton"; // 인터랙티브한 찜하기 버튼 컴포넌트
 import {
   InfoSection,
   StoreName,
@@ -97,6 +98,14 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* 현재/할인된 가격 - 가장 눈에 띄는 가격 표시 */}
         <CurrentPrice>{formatPrice(product.discountPrice)}원</CurrentPrice>
       </PriceSection>
+
+      {/* 위시리스트 버튼 - 찜하기 기능과 찜한 사람 수 표시 */}
+      <WishlistButton
+        productId={product.productId}
+        wishCount={product.wishNumber}
+        size="medium"
+        showCount={true}
+      />
     </InfoSection>
   );
 };

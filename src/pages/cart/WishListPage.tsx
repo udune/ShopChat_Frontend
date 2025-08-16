@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import UserProtectedRoute from "components/UserProtectedRoute";
 import { toUrl } from "utils/common/images";
-import { WishListItem } from "types/cart";
+import { useWishlist } from "hooks/cart/useWishlist";
+import Warning from "components/modal/Warning";
 
 // 스타일드 컴포넌트들
 const Container = styled.div`
@@ -80,9 +81,14 @@ const RemoveButton = styled.button`
   font-size: 1.2rem;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.7);
     transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
@@ -98,11 +104,6 @@ const ProductName = styled.h3`
   line-height: 1.4;
 `;
 
-const ProductCategory = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 12px;
-`;
 
 const PriceSection = styled.div`
   display: flex;
@@ -183,45 +184,70 @@ const ShoppingButton = styled.button`
 
 const WishListPageContent: React.FC = () => {
   const navigate = useNavigate();
-  const [wishList, setWishList] = useState<WishListItem[]>([]);
+  const { 
+    wishlistItems, 
+    wishlistCount, 
+    removeFromWishlist, 
+    loading, 
+    error,
+    fetchWishlist 
+  } = useWishlist();
+  
+  const [isRemoving, setIsRemoving] = useState<number | null>(null);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedProductName, setSelectedProductName] = useState<string>("");
 
-  // localStorage에서 찜한 상품 목록 로딩
-  useEffect(() => {
-    const loadWishList = () => {
-      try {
-        const savedWishList = localStorage.getItem("wishlist");
-        if (savedWishList) {
-          const parsedWishList = JSON.parse(savedWishList);
-          // 최근 추가순으로 정렬
-          const sortedWishList = parsedWishList.sort(
-            (a: WishListItem, b: WishListItem) =>
-              new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
-          );
-          setWishList(sortedWishList);
-        }
-      } catch (error) {
-        console.error("찜한 상품 목록 로딩 실패:", error);
-        setWishList([]);
-      }
-    };
+  // 찜한 상품 제거 버튼 클릭 시 모달 표시
+  const handleRemoveClick = (productId: number, productName: string) => {
+    setSelectedProductId(productId);
+    setSelectedProductName(productName);
+    setShowRemoveModal(true);
+  };
 
-    loadWishList();
-  }, []);
-
-  // 찜한 상품 제거 함수
-  const handleRemoveFromWishList = (productId: number) => {
+  // 찜한 상품 제거 확인
+  const handleRemoveConfirm = async () => {
+    if (!selectedProductId) return;
+    
+    setShowRemoveModal(false);
+    setIsRemoving(selectedProductId);
+    
     try {
-      const updatedWishList = wishList.filter((item) => item.id !== productId);
-      setWishList(updatedWishList);
-      localStorage.setItem("wishlist", JSON.stringify(updatedWishList));
+      const success = await removeFromWishlist(selectedProductId);
+      if (success) {
+        // 성공 시 자동으로 목록이 새로고침됨
+      } else {
+        console.error("찜한 상품 제거 실패");
+      }
     } catch (error) {
       console.error("찜한 상품 제거 실패:", error);
+    } finally {
+      setIsRemoving(null);
+      setSelectedProductId(null);
+      setSelectedProductName("");
     }
+  };
+
+  // 모달 취소
+  const handleRemoveCancel = () => {
+    setShowRemoveModal(false);
+    setSelectedProductId(null);
+    setSelectedProductName("");
   };
 
   // 가격 포맷팅 함수
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat("ko-KR").format(price);
+  };
+
+  // 할인된 가격 계산 함수
+  const calculateDiscountPrice = (originalPrice: number, discountType: string, discountValue: number): number => {
+    if (discountType === "RATE_DISCOUNT") {
+      return originalPrice * (1 - discountValue / 100);
+    } else if (discountType === "FIXED_DISCOUNT") {
+      return Math.max(0, originalPrice - discountValue);
+    }
+    return originalPrice;
   };
 
   // 날짜 포맷팅 함수
@@ -238,12 +264,50 @@ const WishListPageContent: React.FC = () => {
     }
   };
 
+  // 로딩 중일 때
+  if (loading) {
+    return (
+      <Container>
+        <Header>
+          <Title>찜한 상품</Title>
+          <ItemCount>로딩 중...</ItemCount>
+        </Header>
+        <EmptyWishlist>
+          <EmptyIcon>⏳</EmptyIcon>
+          <EmptyTitle>찜한 상품을 불러오고 있습니다...</EmptyTitle>
+        </EmptyWishlist>
+      </Container>
+    );
+  }
+
+  // 에러가 있을 때
+  if (error) {
+    return (
+      <Container>
+        <Header>
+          <Title>찜한 상품</Title>
+          <ItemCount>오류 발생</ItemCount>
+        </Header>
+        <EmptyWishlist>
+          <EmptyIcon>⚠️</EmptyIcon>
+          <EmptyTitle>찜한 상품을 불러올 수 없습니다</EmptyTitle>
+          <EmptyMessage>{error}</EmptyMessage>
+          <ShoppingButton onClick={() => fetchWishlist()}>
+            다시 시도
+          </ShoppingButton>
+        </EmptyWishlist>
+      </Container>
+    );
+  }
+
+  const wishList = wishlistItems?.wishlists || [];
+
   return (
     <Container>
       {/* 헤더 */}
       <Header>
         <Title>찜한 상품</Title>
-        <ItemCount>총 {wishList.length}개</ItemCount>
+        <ItemCount>총 {wishlistCount}개</ItemCount>
       </Header>
 
       {/* 찜한 상품이 없는 경우 */}
@@ -264,63 +328,79 @@ const WishListPageContent: React.FC = () => {
         <>
           {/* 찜한 상품 그리드 */}
           <WishGrid>
-            {wishList.map((item) => (
-              <WishCard key={item.id}>
-                <ProductLink to={`/products/${item.id}`}>
-                  <ProductImage
-                    src={toUrl(item.image)}
-                    alt={item.name}
-                    onError={(e) => {
-                      // 이미지 로드 실패시 기본 이미지로 대체
-                      (e.target as HTMLImageElement).src = toUrl(
-                        "images/common/no-image.png"
-                      );
-                    }}
-                  />
-                </ProductLink>
-
-                {/* 제거 버튼 */}
-                <RemoveButton
-                  onClick={() => handleRemoveFromWishList(item.id)}
-                  title="찜 해제"
-                >
-                  ×
-                </RemoveButton>
-
-                <ProductInfo>
-                  <ProductLink to={`/products/${item.id}`}>
-                    <ProductName>{item.name}</ProductName>
-                    <ProductCategory>{item.category}</ProductCategory>
-
-                    <PriceSection>
-                      <DiscountPrice>
-                        {formatPrice(item.discountPrice)}원
-                      </DiscountPrice>
-                      {item.originalPrice !== item.discountPrice && (
-                        <>
-                          <OriginalPrice>
-                            {formatPrice(item.originalPrice)}원
-                          </OriginalPrice>
-                          {item.discountValue > 0 && (
-                            <DiscountBadge>
-                              {item.discountValue}
-                              {item.discountType === "RATE_DISCOUNT"
-                                ? "%"
-                                : "원"}
-                            </DiscountBadge>
-                          )}
-                        </>
-                      )}
-                    </PriceSection>
+            {wishList.map((item) => {
+              const discountPrice = calculateDiscountPrice(item.productPrice, item.discountType, item.discountValue);
+              const hasDiscount = discountPrice < item.productPrice;
+              
+              return (
+                <WishCard key={item.wishlistId}>
+                  <ProductLink to={`/products/${item.productId}`}>
+                    <ProductImage
+                      src={toUrl(item.productImageUrl)}
+                      alt={item.productName}
+                      onError={(e) => {
+                        // 이미지 로드 실패시 기본 이미지로 대체
+                        (e.target as HTMLImageElement).src = toUrl(
+                          "images/common/no-image.png"
+                        );
+                      }}
+                    />
                   </ProductLink>
 
-                  <AddedDate>{formatDate(item.addedAt)} 추가</AddedDate>
-                </ProductInfo>
-              </WishCard>
-            ))}
+                  {/* 제거 버튼 */}
+                  <RemoveButton
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRemoveClick(item.productId, item.productName);
+                    }}
+                    title="찜 해제"
+                    disabled={isRemoving === item.productId}
+                  >
+                    {isRemoving === item.productId ? "..." : "×"}
+                  </RemoveButton>
+
+                  <ProductInfo>
+                    <ProductLink to={`/products/${item.productId}`}>
+                      <ProductName>{item.productName}</ProductName>
+
+                      <PriceSection>
+                        <DiscountPrice>
+                          {formatPrice(discountPrice)}원
+                        </DiscountPrice>
+                        {hasDiscount && (
+                          <>
+                            <OriginalPrice>
+                              {formatPrice(item.productPrice)}원
+                            </OriginalPrice>
+                            {item.discountValue > 0 && (
+                              <DiscountBadge>
+                                {item.discountValue}
+                                {item.discountType === "RATE_DISCOUNT" ? "%" : "원"}
+                              </DiscountBadge>
+                            )}
+                          </>
+                        )}
+                      </PriceSection>
+                    </ProductLink>
+
+                    <AddedDate>{formatDate(item.createdAt)} 추가</AddedDate>
+                  </ProductInfo>
+                </WishCard>
+              );
+            })}
           </WishGrid>
         </>
       )}
+
+      {/* 찜 해제 확인 모달 */}
+      <Warning
+        open={showRemoveModal}
+        title="찜 해제"
+        message={`"${selectedProductName}"을(를) 찜 목록에서 제거하시겠습니까?`}
+        onConfirm={handleRemoveConfirm}
+        onCancel={handleRemoveCancel}
+      />
     </Container>
   );
 };
