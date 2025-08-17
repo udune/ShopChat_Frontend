@@ -56,7 +56,7 @@ export const useDashboardStats = () => {
   const isToday = (dateString: string): boolean => {
     const today = new Date();
     const orderDate = new Date(dateString);
-    
+
     return (
       today.getFullYear() === orderDate.getFullYear() &&
       today.getMonth() === orderDate.getMonth() &&
@@ -68,7 +68,7 @@ export const useDashboardStats = () => {
     const today = new Date();
     const orderDate = new Date(dateString);
     const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
+
     return orderDate >= oneWeekAgo && orderDate <= today;
   };
 
@@ -82,22 +82,34 @@ export const useDashboardStats = () => {
       const allOrders = ordersResponse.content;
 
       // 오늘 날짜 필터링
-      const todayOrders = allOrders.filter(order => isToday(order.orderedAt));
-      
+      const todayOrders = allOrders.filter((order) => isToday(order.orderedAt));
+
       // 이번 주 주문 필터링
-      const weeklyOrders = allOrders.filter(order => isThisWeek(order.orderedAt));
-      
+      const weeklyOrders = allOrders.filter((order) =>
+        isThisWeek(order.orderedAt)
+      );
+
       // 통계 계산
-      const todaySales = todayOrders.reduce((sum, order) => sum + order.finalPrice, 0);
-      const weeklySales = weeklyOrders.reduce((sum, order) => sum + order.finalPrice, 0);
+      const todaySales = todayOrders.reduce(
+        (sum, order) => sum + order.finalPrice,
+        0
+      );
+      const weeklySales = weeklyOrders.reduce(
+        (sum, order) => sum + order.finalPrice,
+        0
+      );
       const newOrdersCount = todayOrders.length;
       const totalOrdersCount = allOrders.length;
-      const shippingCount = allOrders.filter(order => order.status === "SHIPPED").length;
-      const deliveredCount = allOrders.filter(order => order.status === "DELIVERED").length;
-      
+      const shippingCount = allOrders.filter(
+        (order) => order.status === "SHIPPED"
+      ).length;
+      const deliveredCount = allOrders.filter(
+        (order) => order.status === "DELIVERED"
+      ).length;
+
       // Mock 데이터 - 실제 리뷰 API가 없으므로
-      const newReviewsCount = Math.floor(Math.random() * 5) + 1; // 1-5개
-      const totalReviewsCount = Math.floor(Math.random() * 50) + 20; // 20-70개
+      const newReviewsCount = 5;
+      const totalReviewsCount = 20;
 
       setStats({
         todaySales,
@@ -113,7 +125,7 @@ export const useDashboardStats = () => {
       // 최근 주문 4개 (최신순)
       const recentOrdersData: RecentOrder[] = allOrders
         .slice(0, 4)
-        .map(order => ({
+        .map((order) => ({
           orderId: order.orderId,
           productName: order.items[0]?.productName || "상품명 없음",
           finalPrice: order.finalPrice,
