@@ -81,7 +81,7 @@ export interface ProductOptionRequest {
 }
 
 // 색상 타입 정의
-export type ColorType = 
+export type ColorType =
   | "WHITE"
   | "SILVER"
   | "LIGHT_GRAY"
@@ -128,7 +128,7 @@ export type ColorType =
   | "KHAKI_BEIGE";
 
 // 사이즈 타입 정의
-export type SizeType = 
+export type SizeType =
   | "SIZE_230"
   | "SIZE_235"
   | "SIZE_240"
