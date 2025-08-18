@@ -4,7 +4,7 @@ import SellerOrdersPage from "../order/SellerOrdersPage";
 import StoreService from "../../api/storeService";
 import { SellerStore } from "../../types/products";
 import { toUrl } from "utils/common/images";
-import { useDashboardStats } from "../../hooks/seller/useDashboardStats";
+import { useDashboardStats, RecentOrder } from "../../hooks/seller/useDashboardStats";
 
 const SellerMyPage: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -413,7 +413,7 @@ const SellerMyPage: React.FC = () => {
                           <p>최근 주문이 없습니다.</p>
                         </div>
                       ) : (
-                        recentOrders.map((order) => (
+                        recentOrders.map((order: RecentOrder) => (
                           <div
                             key={order.orderId}
                             className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"

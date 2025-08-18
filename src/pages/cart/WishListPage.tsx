@@ -4,6 +4,7 @@ import styled from "styled-components";
 import UserProtectedRoute from "components/UserProtectedRoute";
 import { toUrl } from "utils/common/images";
 import { useWishlist } from "hooks/cart/useWishlist";
+import { WishlistItem } from "api/wishlistService";
 import Warning from "components/modal/Warning";
 
 // 스타일드 컴포넌트들
@@ -328,7 +329,7 @@ const WishListPageContent: React.FC = () => {
         <>
           {/* 찜한 상품 그리드 */}
           <WishGrid>
-            {wishList.map((item) => {
+            {wishList.map((item: WishlistItem) => {
               const discountPrice = calculateDiscountPrice(item.productPrice, item.discountType, item.discountValue);
               const hasDiscount = discountPrice < item.productPrice;
               
