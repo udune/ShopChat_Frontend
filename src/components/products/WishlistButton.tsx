@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useWishlist } from "hooks/cart/useWishlist";
+import { useAuth } from "contexts/AuthContext";
 import Warning from "components/modal/Warning";
 
 interface WishlistButtonProps {
@@ -60,6 +61,7 @@ export const WishlistButton: React.FC<WishlistButtonProps> = ({
   size = "medium",
   className,
 }) => {
+  const { user } = useAuth();
   const { addToWishlist, removeFromWishlist, isWishlisted, loading } = useWishlist();
   const [isLocalLoading, setIsLocalLoading] = useState(false);
   const [localWishCount, setLocalWishCount] = useState(wishCount);
@@ -79,6 +81,11 @@ export const WishlistButton: React.FC<WishlistButtonProps> = ({
     e.stopPropagation();
 
     if (isCurrentlyLoading) return;
+
+    // 로그인하지 않은 상태에서는 아무 동작도 하지 않음
+    if (!user) {
+      return;
+    }
 
     if (isWishlistedItem) {
       setShowRemoveModal(true);

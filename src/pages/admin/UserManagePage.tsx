@@ -212,7 +212,7 @@ const UserManagePage: FC = () => {
   const handleReviewManageClick = () => navigate("/admin-dashboard");
   const handleReportManageClick = () => navigate("/report-manage");
   const handleStatsClick = () => navigate("/stats-dashboard");
-  const handleSettingsClick = () => navigate("/profile");
+  const handleSettingsClick = () => navigate("/admin/settings");
   // 관리자 드롭다운 토글
   const toggleAdminDropdown = () => {
     setShowAdminDropdown(!showAdminDropdown);

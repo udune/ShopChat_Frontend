@@ -40,6 +40,9 @@ const ReportManagePage = lazy(() => import("./pages/admin/ReportManagePage"));
 const AdminDashboardPage = lazy(
   () => import("./pages/admin/AdminDashboardPage")
 );
+const FeedRewardDashboardPage = lazy(
+  () => import("./pages/admin/FeedRewardDashboardPage")
+);
 const StatsDashboardPage = lazy(
   () => import("./pages/admin/StatsDashboardPage")
 );
@@ -69,8 +72,16 @@ const BecomeSellerPage = lazy(() => import("./pages/seller/BecomeSellerPage"));
 const SellerMyPage = lazy(() => import("./pages/seller/SellerMyPage"));
 const ReviewListPage = lazy(() => import("./pages/reviews/ReviewListPage"));
 const ReviewWritePage = lazy(() => import("./pages/reviews/ReviewWritePage"));
-const SocialCallbackPage = lazy(() => import("./pages/auth/SocialCallbackPage"));
-
+const SocialCallbackPage = lazy(
+  () => import("./pages/auth/SocialCallbackPage")
+);
+const MfaSetupPage = lazy(() => import("./pages/admin/MfaSetupPage"));
+const MfaVerificationPage = lazy(
+  () => import("./pages/auth/MfaVerificationPage")
+);
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
+const AdminProfilePage = lazy(() => import("./pages/admin/AdminProfilePage"));
+const MyCommentsPage = lazy(() => import("./pages/auth/MyComments"));
 
 const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || "";
 
@@ -98,7 +109,10 @@ const App: FC = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
-                <Route path="/products/:productId/reviews" element={<ReviewListPage />} />
+                <Route
+                  path="/products/:productId/reviews"
+                  element={<ReviewListPage />}
+                />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -168,12 +182,12 @@ const App: FC = () => {
                   }
                 />
                 <Route
-                    path="/reviews/write"
-                    element={
-                        <UserProtectedRoute requireLogin={true}>
-                            <ReviewWritePage />
-                        </UserProtectedRoute>
-                    }
+                  path="/reviews/write"
+                  element={
+                    <UserProtectedRoute requireLogin={true}>
+                      <ReviewWritePage />
+                    </UserProtectedRoute>
+                  }
                 />
                 <Route
                   path="/reviews/edit"
@@ -215,6 +229,14 @@ const App: FC = () => {
                   element={
                     <UserProtectedRoute requireLogin={true}>
                       <LikedFeedsPage />
+                    </UserProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/mypage/comments"
+                  element={
+                    <UserProtectedRoute requireLogin={true}>
+                      <MyCommentsPage />
                     </UserProtectedRoute>
                   }
                 />
@@ -302,6 +324,38 @@ const App: FC = () => {
                     </AdminProtectedRoute>
                   }
                 />
+                <Route
+                  path="/admin/feed-rewards"
+                  element={
+                    <AdminProtectedRoute>
+                      <FeedRewardDashboardPage />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/mfa-setup"
+                  element={
+                    <AdminProtectedRoute>
+                      <MfaSetupPage />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminSettingsPage />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/profile"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminProfilePage />
+                    </AdminProtectedRoute>
+                  }
+                />
 
                 {/* 기존 상품 등록/수정 페이지 (제거 예정 - 가게 페이지에서 처리) */}
                 <Route
@@ -329,6 +383,10 @@ const App: FC = () => {
               </Route>
               {/* Layout 없이 보여야 하는 페이지들 */}
               <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/mfa-verification"
+                element={<MfaVerificationPage />}
+              />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/find-account" element={<FindAccountPage />} />
               <Route path="/find-password" element={<FindPasswordPage />} />

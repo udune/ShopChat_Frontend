@@ -29,7 +29,7 @@ export const AddressService = {
 
       const frontEndAddresses: AddressResponse[] = backendAddresses.map(
         (addr) => ({
-          id: addr.id,
+          addressId: addr.id,
           recipientName: addr.recipientName,
           recipientPhone: addr.recipientPhone,
           zipCode: addr.zipCode,

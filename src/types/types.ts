@@ -86,7 +86,7 @@ export interface AddressRequest {
 }
 
 export interface AddressResponse {
-  id: number;
+  addressId: number;
   recipientName: string;
   recipientPhone: string;
   zipCode: string;
@@ -114,18 +114,13 @@ export type DiscountType =
   | "RATE_DISCOUNT"
   | "AMOUNT_DISCOUNT";
 
+// API 명세서에 따른 실제 쿠폰 응답 구조 (couponCode, discountType 필드 없음)
 export interface CouponResponse {
-  id: number;
-  couponCode: string;
   couponName: string;
-  discountType: DiscountType;
   discountValue: number;
-  freeShipping: boolean;
-  issuedAt: string;
+  isFreeShipping: boolean;
+  couponStatus: UserCouponStatus;
   expiresAt: string;
-  usedAt?: string;
-  status?: UserCouponStatus; // 선택적으로 변경
-  couponStatus?: UserCouponStatus; // 백엔드 엔티티 필드명
 }
 
 export interface CouponIssueRequest {

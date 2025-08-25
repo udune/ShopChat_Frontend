@@ -30,10 +30,8 @@ export const couponService = {
         params,
       });
 
-      // 백엔드 응답이 { data: [...] } 형태일 수 있으므로 확인
-      if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      } else if (Array.isArray(response.data)) {
+      // API 명세서에 따르면 직접 배열 반환
+      if (Array.isArray(response.data)) {
         return response.data;
       } else {
         return [];
@@ -42,6 +40,15 @@ export const couponService = {
       console.error("쿠폰 목록 조회 실패:", error);
       throw error;
     }
+  },
+
+  /**
+   * 사용자의 사용 가능한 쿠폰 목록을 조회합니다. (ACTIVE 상태만)
+   * @param email 사용자 이메일
+   * @returns 사용 가능한 쿠폰 목록
+   */
+  getAvailableCoupons: async (email: string): Promise<CouponResponse[]> => {
+    return couponService.getUserCoupons(email, "ACTIVE");
   },
 
   /**

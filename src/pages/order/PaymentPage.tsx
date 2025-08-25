@@ -9,10 +9,14 @@ import { formatPrice } from "../../utils/order/formatters"; // 가격 포맷팅 
 // 결제 페이지 UI 컴포넌트들
 import { ProductPreviewSection } from "../../components/order/ProductPreviewSection"; // 상품 미리보기 섹션
 import { ShippingInfoSection } from "../../components/order/ShippingInfoSection"; // 배송 정보 입력 섹션
-import { PointSection } from "../../components/order/PointSection"; // 포인트 사용 섹션
+import { PointSection } from "../../components/order/PointSection"; // 기존 포인트 사용 섹션
+import { EnhancedPointSection } from "../../components/order/EnhancedPointSection"; // 향상된 포인트 사용 섹션
 import { PaymentMethodSection } from "../../components/order/PaymentMethodSection"; // 결제수단 선택 섹션
 import { PaymentSummary } from "../../components/order/PaymentSummary"; // 결제 요약 및 결제 버튼
 import { LoadingOverlay } from "../../components/order/LoadingOverlay"; // 결제 처리 중 로딩 오버레이
+// 새로 추가된 섹션들
+import { AddressSelectionSection } from "../../components/order/AddressSelectionSection"; // 배송지 선택 섹션
+import { CouponSelectionSection } from "../../components/order/CouponSelectionSection"; // 쿠폰 선택 섹션
 // 스타일 컴포넌트
 import { Container, FormSection, SummarySection } from "./PaymentPage.styles";
 
@@ -88,10 +92,18 @@ const PaymentPage: React.FC = () => {
       <Container>
         {/* 결제 정보 입력 섹션 (좌측) */}
         <FormSection>
+
           {/* 주문 상품 미리보기 */}
           <ProductPreviewSection
             items={paymentData.items} // 주문할 상품 목록
             formatPrice={formatPrice}
+          />
+
+          {/* 배송지 선택 섹션 */}
+          <AddressSelectionSection
+            addresses={paymentData.addresses}
+            selectedAddress={paymentData.selectedAddress}
+            onAddressSelect={paymentData.setSelectedAddress}
           />
 
           {/* 배송 정보 입력 (이름, 전화번호, 주소, 배송 요청사항) */}
@@ -102,16 +114,25 @@ const PaymentPage: React.FC = () => {
             onDeliveryRequestChange={paymentData.handleDeliveryRequestChange}
           />
 
-          {/* 포인트 사용 섹션 */}
-          <PointSection
-            usePoint={paymentData.usePoint} // 포인트 사용 여부
-            usedPoints={paymentData.usedPoints} // 사용할 포인트 금액
-            availablePoints={paymentData.availablePoints} // 사용 가능한 포인트
+          {/* 쿠폰 선택 섹션 */}
+          <CouponSelectionSection
+            coupons={paymentData.availableCoupons}
+            selectedCoupon={paymentData.selectedCoupon}
+            onCouponSelect={paymentData.setSelectedCoupon}
+            formatPrice={formatPrice}
+            onCouponCodeApply={paymentData.applyCouponByCode}
+          />
+
+          {/* 향상된 포인트 사용 섹션 */}
+          <EnhancedPointSection
+            usePoint={paymentData.usePoint}
+            usedPoints={paymentData.usedPoints}
+            pointBalance={paymentData.pointBalance}
             isProcessing={paymentData.isProcessing}
             formatPrice={formatPrice}
-            onPointToggle={paymentData.handlePointToggle} // 포인트 사용 토글
-            onPointsChange={handlePointsChange} // 포인트 사용량 변경
-            onUseAllPoints={handleUseAllPoints} // 전체 포인트 사용
+            onPointToggle={paymentData.handlePointToggle}
+            onPointsChange={handlePointsChange}
+            onUseAllPoints={handleUseAllPoints}
           />
 
           {/* 결제 수단 선택 (카드, 무통장입금, 휴대폰 결제 등) */}
@@ -127,12 +148,13 @@ const PaymentPage: React.FC = () => {
         {/* 결제 요약 섹션 (우측) */}
         <SummarySection>
           <PaymentSummary
-            totals={totals} // 계산된 결제 금액 정보
+            totals={totals} // 계산된 결제 금액 정보 (쿠폰 할인 포함)
             items={paymentData.items}
             isAgree={paymentData.isAgree} // 약관 동의 여부
             isProcessing={paymentData.isProcessing}
             usePoint={paymentData.usePoint}
             usedPoints={paymentData.usedPoints}
+            selectedCoupon={paymentData.selectedCoupon} // 선택된 쿠폰 정보
             formatPrice={formatPrice}
             onAgreeChange={paymentData.setIsAgree} // 약관 동의 체크박스 변경
             onPayment={handlePayment} // 최종 결제 버튼 클릭

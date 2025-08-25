@@ -314,6 +314,48 @@ export interface UseReviewActionsReturn {
     canDeleteReview: (review: Review, currentUserId?: number) => boolean;
 }
 
+// =============== 리뷰 신고 관련 타입 ===============
+
+/**
+ * 리뷰 신고 사유 옵션
+ */
+export type ReportReason = 
+    | 'ABUSIVE_LANGUAGE'     // 욕설 및 비방
+    | 'SPAM'                 // 스팸 및 도배
+    | 'INAPPROPRIATE_CONTENT' // 부적절한 내용
+    | 'FALSE_INFORMATION'    // 허위 정보
+    | 'ADVERTISING'          // 광고성 내용
+    | 'COPYRIGHT_VIOLATION'  // 저작권 침해
+    | 'OTHER';               // 기타
+
+/**
+ * 리뷰 신고 요청 타입
+ */
+export interface ReportReviewRequest {
+    reason: ReportReason;
+    description?: string;
+}
+
+/**
+ * 리뷰 신고 응답 타입
+ */
+export interface ReportReviewResponse {
+    reportId: number;
+    reviewId: number;
+    reporterId: number;
+    reason: ReportReason;
+    createdAt: string;
+}
+
+/**
+ * 신고 사유 옵션 정보
+ */
+export interface ReportReasonOption {
+    value: ReportReason;
+    label: string;
+    description: string;
+}
+
 // =============== 기타 유틸리티 타입 ===============
 
 /**

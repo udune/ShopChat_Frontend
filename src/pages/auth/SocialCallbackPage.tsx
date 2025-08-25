@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import styled from "styled-components";
 
@@ -44,32 +44,53 @@ const SubMessage = styled.p`
 
 export default function SocialCallbackPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { login: authLogin } = useAuth();
 
   useEffect(() => {
     const handleSocialLoginCallback = async () => {
       try {
-        // React Router의 useSearchParams 사용
-        // 일반적인 OAuth2 콜백 파라미터들
+        // Fragment 파라미터 파싱 (백엔드에서 fragment로 전달)
+        const fragment = window.location.hash.substring(1); // '#' 제거
+
+        // Fragment가 없거나 비어있으면 처리 중단 (이미 로그인 완료된 경우)
+        if (!fragment) {
+          console.log("No fragment found, redirecting to home");
+          navigate("/", { replace: true });
+          return;
+        }
+
+        const params = new URLSearchParams(fragment);
+
+        // 디버깅을 위한 로그 추가
+        console.log("Current URL:", window.location.href);
+        console.log("Fragment:", fragment);
+        console.log("Parsed params:", Object.fromEntries(params.entries()));
+
+        // OAuth2 콜백 파라미터들
         let token =
-          searchParams.get("token") ||
-          searchParams.get("access_token") ||
-          searchParams.get("jwt");
-        let email = searchParams.get("email") || searchParams.get("username");
-        let name = searchParams.get("name") || searchParams.get("displayName");
+          params.get("token") ||
+          params.get("access_token") ||
+          params.get("jwt");
+        let email = params.get("email") || params.get("username");
+        let name = params.get("name") || params.get("displayName");
         let nickname =
-          searchParams.get("nickname") ||
-          searchParams.get("name") ||
-          searchParams.get("given_name");
-        let provider =
-          searchParams.get("provider") || searchParams.get("social_provider");
-        let role =
-          searchParams.get("role") || searchParams.get("userType") || "user";
+          params.get("nickname") ||
+          params.get("name") ||
+          params.get("given_name");
+        let provider = params.get("provider") || params.get("social_provider");
+        let role = params.get("role") || params.get("userType") || "user";
+
+        // 디버깅을 위한 파라미터 값 로그
+        console.log("Extracted values:", {
+          token: token ? "exists" : "missing",
+          email: email ? "exists" : "missing",
+          name: name ? "exists" : "missing",
+          provider: provider ? "exists" : "missing",
+        });
 
         // 에러 처리를 위한 파라미터
-        const error = searchParams.get("error");
-        const errorDescription = searchParams.get("error_description");
+        const error = params.get("error");
+        const errorDescription = params.get("error_description");
 
         // 에러가 있는 경우 처리
         if (error) {
@@ -81,8 +102,8 @@ export default function SocialCallbackPage() {
         }
 
         // Authorization Code가 있는 경우 (OAuth2 표준 플로우)
-        const code = searchParams.get("code");
-        const state = searchParams.get("state");
+        const code = params.get("code");
+        const state = params.get("state");
 
         if (code && !token) {
           throw new Error(
@@ -100,6 +121,7 @@ export default function SocialCallbackPage() {
         authLogin(
           nickname || email, // nickname이 없으면 email 사용
           name || nickname || email, // name이 없으면 nickname 또는 email 사용
+          email, // email 파라미터 추가
           role as "user" | "admin" | "seller",
           token
         );
@@ -118,7 +140,7 @@ export default function SocialCallbackPage() {
     };
 
     handleSocialLoginCallback();
-  }, [navigate, authLogin, searchParams]);
+  }, [navigate, authLogin]);
 
   return (
     <CallbackContainer>

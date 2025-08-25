@@ -36,6 +36,7 @@ import {
   PrimaryButton, // 주 액션 버튼
   Notice, // 안내 메시지
 } from "../../pages/order/CheckoutPage.styles";
+import { CouponResponse } from "../../types/types";
 
 /**
  * PaymentSummary 컴포넌트의 Props 인터페이스
@@ -45,6 +46,7 @@ interface PaymentSummaryProps {
     // 결제 금액 정보 객체
     productTotal: number; // 상품 총 금액
     deliveryFee: number; // 배송비
+    couponDiscount?: number; // 쿠폰 할인 금액 (새로 추가)
     finalAmount: number; // 최종 결제 금액
     usedPoints: number; // 사용된 포인트 (중복, 아래와 동일)
   };
@@ -53,6 +55,7 @@ interface PaymentSummaryProps {
   isProcessing: boolean; // 결제 처리 중 상태
   usePoint: boolean; // 포인트 사용 여부
   usedPoints: number; // 사용된 포인트 금액
+  selectedCoupon?: CouponResponse | null; // 선택된 쿠폰 (새로 추가)
   formatPrice: (price: number) => string; // 가격 포맷팅 함수
   onAgreeChange: (agree: boolean) => void; // 동의 상태 변경 핸들러
   onPayment: () => Promise<void>; // 결제 실행 핸들러
@@ -72,6 +75,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   isProcessing,
   usePoint,
   usedPoints,
+  selectedCoupon,
   formatPrice,
   onAgreeChange,
   onPayment,
@@ -94,8 +98,17 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
           {totals.deliveryFee === 0
             ? "무료" // 무료배송인 경우
             : `${formatPrice(totals.deliveryFee)}원`}
+          {selectedCoupon?.isFreeShipping && totals.deliveryFee === 0 && " (쿠폰 적용)"}
         </span>
       </TotalRow>
+
+      {/* 쿠폰 할인 시에만 표시되는 할인 금액 */}
+      {selectedCoupon && totals.couponDiscount && totals.couponDiscount > 0 && (
+        <TotalRow>
+          <span>쿠폰 할인</span>
+          <span>-{formatPrice(totals.couponDiscount)}원</span>
+        </TotalRow>
+      )}
 
       {/* 포인트 사용 시에만 표시되는 할인 금액 */}
       {usePoint && usedPoints > 0 && (

@@ -542,7 +542,20 @@ export const ReviewWritePage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 유효성 검사
+        // 1. 먼저 구매이력 검증
+        try {
+            const hasPurchased = await ReviewService.checkPurchaseHistory(productId);
+            if (!hasPurchased) {
+                alert('이 상품을 구매한 후에만 리뷰를 작성할 수 있습니다.');
+                return;
+            }
+        } catch (error) {
+            console.error('구매이력 검증 실패:', error);
+            alert('구매이력을 확인하는 중 오류가 발생했습니다.');
+            return;
+        }
+
+        // 2. 유효성 검사
         const newErrors: FormErrors = {};
 
         // 제목 유효성 검사
@@ -565,7 +578,7 @@ export const ReviewWritePage: React.FC = () => {
             return;
         }
 
-        // 리뷰 생성 요청
+        // 3. 리뷰 생성 요청
         try {
             await createReview({
                 productId,

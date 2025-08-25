@@ -24,6 +24,8 @@ interface ReviewListProps {
     enableInfiniteScroll?: boolean;                       // 무한 스크롤 활성화 여부
     emptyMessage?: string;                                // 빈 상태 메시지
     loadingMessage?: string;                              // 로딩 메시지
+    isReportedReview?: (reviewId: number) => boolean;     // 신고된 리뷰 확인 함수
+    onReportSuccess?: (reviewId: number) => void;         // 신고 성공 콜백
 }
 
 // =============== 스타일 컴포넌트 ===============
@@ -220,6 +222,8 @@ export const ReviewList: React.FC<ReviewListProps> = ({
                                                           enableInfiniteScroll = false,
                                                           emptyMessage = "아직 작성된 리뷰가 없습니다.\n첫 번째 리뷰를 작성해보세요!",
                                                           loadingMessage = "리뷰를 불러오는 중...",
+                                                          isReportedReview,
+                                                          onReportSuccess,
                                                       }) => {
     const infiniteScrollRef = useRef<HTMLDivElement>(null);
 
@@ -329,6 +333,8 @@ export const ReviewList: React.FC<ReviewListProps> = ({
                         currentUserId={currentUserId}
                         onEdit={onEdit}
                         onDelete={onDelete}
+                        isReported={isReportedReview?.(review.reviewId) || false}
+                        onReportSuccess={() => onReportSuccess?.(review.reviewId)}
                     />
                 ))}
             </ReviewsContainer>

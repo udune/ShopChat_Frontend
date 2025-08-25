@@ -41,11 +41,11 @@ export const UserProfileService = {
         token ? token.substring(0, 20) + "..." : "토큰 없음"
       );
 
-      // Swagger에서 성공한 엔드포인트와 동일하게 수정
+      // API 명세서에 따라 직접 반환되는 프로필 정보 조회
       const response = await axios.get("/api/users/me/profile");
       console.log("백엔드 응답 (원본):", response.data);
 
-      // 백엔드 응답을 프론트엔드 형식에 맞춰 매핑
+      // API 명세서에 따르면 직접 UserProfileResponse 반환 (ApiResponse 래핑 없음)
       const backendData = response.data;
 
       // 백엔드 응답 구조에 따라 매핑

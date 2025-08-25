@@ -88,7 +88,7 @@ const CheckoutPage: React.FC = () => {
       <Container>
         {/* 주문 성공 메시지 및 적립 포인트 표시 */}
         <OrderSuccess
-          earnedPoints={orderDetail.earnedPoints} // 이번 주문으로 적립된 포인트
+          earnedPoints={orderDetail.earnedPoints || Math.floor((orderDetail.finalPrice || 0) * 0.01)} // 이번 주문으로 적립된 포인트 (기본 1% 계산)
           formatPrice={formatPrice}
         />
 

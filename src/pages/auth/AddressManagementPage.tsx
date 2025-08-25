@@ -168,7 +168,7 @@ const AddressManagementPage = () => {
         console.warn("개발 환경: 테스트 배송지 데이터를 사용합니다.");
         const testData = [
           {
-            id: 1,
+            addressId: 1,
             recipientName: "홍길동",
             recipientPhone: "010-1234-5678",
             zipCode: "06240",
@@ -177,7 +177,7 @@ const AddressManagementPage = () => {
             isDefault: true,
           },
           {
-            id: 2,
+            addressId: 2,
             recipientName: "김영희",
             recipientPhone: "010-8765-4321",
             zipCode: "06611",
@@ -190,7 +190,7 @@ const AddressManagementPage = () => {
         console.log(
           "📂 테스트 데이터 설정:",
           testData.map((a) => ({
-            id: a.id,
+            id: a.addressId,
             name: a.recipientName,
             isDefault: a.isDefault,
           }))
@@ -214,7 +214,7 @@ const AddressManagementPage = () => {
 
       if (editingAddress) {
         // 수정
-        await AddressService.updateAddress(editingAddress.id, addressData);
+        await AddressService.updateAddress(editingAddress.addressId, addressData);
       } else {
         // 추가
         await AddressService.addAddress(addressData);
@@ -276,7 +276,7 @@ const AddressManagementPage = () => {
       console.log("🔧 기본 배송지 설정 시작:", addressId);
 
       // 설정할 배송지 정보 찾기
-      const targetAddress = addresses.find((addr) => addr.id === addressId);
+      const targetAddress = addresses.find((addr) => addr.addressId === addressId);
       if (!targetAddress) {
         setError("배송지 정보를 찾을 수 없습니다.");
         return;
@@ -344,7 +344,7 @@ const AddressManagementPage = () => {
       ) : (
         <AddressList>
           {addresses.map((addr) => (
-            <AddressCard key={addr.id} isDefault={addr.isDefault}>
+            <AddressCard key={addr.addressId} isDefault={addr.isDefault}>
               <AddressInfo>
                 <div>
                   <AddressName>{addr.recipientName}</AddressName>
@@ -374,14 +374,14 @@ const AddressManagementPage = () => {
               </AddressInfo>
               <ButtonGroup>
                 {!addr.isDefault && (
-                  <ActionButton onClick={() => handleSetDefault(addr.id)}>
+                  <ActionButton onClick={() => handleSetDefault(addr.addressId)}>
                     기본으로 설정
                   </ActionButton>
                 )}
                 <ActionButton onClick={() => handleEdit(addr)}>
                   수정
                 </ActionButton>
-                <ActionButton onClick={() => handleDelete(addr.id)}>
+                <ActionButton onClick={() => handleDelete(addr.addressId)}>
                   삭제
                 </ActionButton>
               </ButtonGroup>

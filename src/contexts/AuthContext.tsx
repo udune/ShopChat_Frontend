@@ -14,6 +14,7 @@ import { UserProfileService } from "../api/userProfileService";
 interface User {
   nickname: string;
   name: string;
+  email: string;
   userType: "user" | "admin" | "seller";
   token: string;
 }
@@ -23,6 +24,7 @@ interface AuthContextType {
   login: (
     nickname: string,
     name: string,
+    email: string,
     userType: "user" | "admin" | "seller",
     token: string
   ) => void;
@@ -41,6 +43,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const initializeAuth = async () => {
       const storedNickname = localStorage.getItem("nickname");
       const storedName = localStorage.getItem("name");
+      const storedEmail = localStorage.getItem("email");
       const storedToken = localStorage.getItem("token");
       const storedUserType = localStorage.getItem("userType");
 
@@ -55,6 +58,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           setUser({
             nickname: storedNickname,
             name: storedName || storedNickname, // name이 없으면 nickname 사용
+            email: storedEmail || `${storedNickname}@example.com`, // email이 없으면 임시 이메일 생성
             userType: storedUserType as "admin" | "seller" | "user",
             token: storedToken,
           });
@@ -73,6 +77,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           // (axios 인터셉터가 이미 localStorage를 정리했을 수 있음)
           localStorage.removeItem("nickname");
           localStorage.removeItem("name");
+          localStorage.removeItem("email");
           localStorage.removeItem("token");
           localStorage.removeItem("userType");
           localStorage.removeItem("likedPosts");
@@ -82,6 +87,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         // 필수 정보가 없으면 로그인 상태가 아니므로 localStorage 정리
         localStorage.removeItem("nickname");
         localStorage.removeItem("name");
+        localStorage.removeItem("email");
         localStorage.removeItem("token");
         localStorage.removeItem("userType");
         localStorage.removeItem("likedPosts");
@@ -97,6 +103,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     (
       nickname: string,
       name: string,
+      email: string,
       userType: "admin" | "seller" | "user",
       token: string
     ) => {
@@ -104,10 +111,17 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         | "admin"
         | "seller"
         | "user";
-      const userData = { nickname, name, userType: userTypeLower, token };
+      const userData = {
+        nickname,
+        name,
+        email,
+        userType: userTypeLower,
+        token,
+      };
       setUser(userData);
       localStorage.setItem("nickname", nickname);
       localStorage.setItem("name", name);
+      localStorage.setItem("email", email);
       localStorage.setItem("userType", userTypeLower);
       localStorage.setItem("token", token);
 
@@ -128,6 +142,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setUser(null);
     localStorage.removeItem("nickname");
     localStorage.removeItem("name"); // name도 제거
+    localStorage.removeItem("email"); // email도 제거
     localStorage.removeItem("token");
     localStorage.removeItem("userType");
     // 로그아웃 시 좋아요 상태는 백엔드에서 관리하므로 별도 정리 불필요

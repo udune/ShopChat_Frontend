@@ -1100,6 +1100,70 @@ const FilterContent = styled.div`
   padding: 1.75rem;
 `;
 
+// 빠른 액세스 관련 styled-components
+const QuickAccessGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+`;
+
+const QuickAccessCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(249, 115, 22, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  }
+`;
+
+const QuickAccessIcon = styled.div<{ $bgColor: string }>`
+  background: ${(props) => props.$bgColor};
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: scale(1.1);
+    animation: ${pulse} 0.6s ease-in-out;
+  }
+
+  i {
+    font-size: 1.5rem;
+  }
+`;
+
+const QuickAccessTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+`;
+
+const QuickAccessDescription = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  line-height: 1.4;
+`;
+
 const FilterGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2175,7 +2239,7 @@ const AdminDashboardPage: FC = () => {
           <IconButton onClick={handleShowToast}>
             <i className="fas fa-bell"></i>
           </IconButton>
-          <IconButton>
+          <IconButton onClick={() => navigate("/admin/settings")}>
             <i className="fas fa-cog"></i>
           </IconButton>
           {user && user.nickname ? (
@@ -2261,6 +2325,17 @@ const AdminDashboardPage: FC = () => {
               <MobileMenuListItem>
                 <NavLink href="#" style={{ cursor: "pointer" }}>
                   회사소개
+                </NavLink>
+              </MobileMenuListItem>
+              <MobileMenuListItem>
+                <NavLink
+                  onClick={() => {
+                    navigate("/admin/settings");
+                    toggleMobileMenu();
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  관리자 설정
                 </NavLink>
               </MobileMenuListItem>
             </MobileMenuList>
@@ -2351,6 +2426,12 @@ const AdminDashboardPage: FC = () => {
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
+                <SidebarLink onClick={() => navigate("/admin/feed-rewards")}>
+                  <SidebarIcon className="fas fa-gift sidebar-icon"></SidebarIcon>
+                  <SidebarText $isOpen={sidebarOpen}>피드 리워드</SidebarText>
+                </SidebarLink>
+              </SidebarItem>
+              <SidebarItem>
                 <SidebarLink onClick={() => navigate("/store")}>
                   <SidebarIcon className="fas fa-store sidebar-icon"></SidebarIcon>
                   <SidebarText $isOpen={sidebarOpen}>가게 관리</SidebarText>
@@ -2363,15 +2444,15 @@ const AdminDashboardPage: FC = () => {
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => navigate("/stats-dashboard")}>
-                  <SidebarIcon className="fas fa-chart-line sidebar-icon"></SidebarIcon>
-                  <SidebarText $isOpen={sidebarOpen}>통계 분석</SidebarText>
+                <SidebarLink onClick={() => navigate("/admin/settings")}>
+                  <SidebarIcon className="fas fa-cog sidebar-icon"></SidebarIcon>
+                  <SidebarText $isOpen={sidebarOpen}>관리자 설정</SidebarText>
                 </SidebarLink>
               </SidebarItem>
               <SidebarItem>
-                <SidebarLink onClick={() => navigate("/profile")}>
-                  <SidebarIcon className="fas fa-cog sidebar-icon"></SidebarIcon>
-                  <SidebarText $isOpen={sidebarOpen}>설정</SidebarText>
+                <SidebarLink onClick={() => navigate("/stats-dashboard")}>
+                  <SidebarIcon className="fas fa-chart-line sidebar-icon"></SidebarIcon>
+                  <SidebarText $isOpen={sidebarOpen}>상세 통계</SidebarText>
                 </SidebarLink>
               </SidebarItem>
             </SidebarList>
@@ -2499,6 +2580,48 @@ const AdminDashboardPage: FC = () => {
                     </StatIconWrapper>
                   </StatCard>
                 </StatCardsGrid>
+
+                <QuickAccessGrid>
+                  <QuickAccessCard onClick={() => navigate("/admin/settings")}>
+                    <QuickAccessIcon $bgColor="#3b82f6">
+                      <i className="fas fa-user-cog"></i>
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>관리자 프로필</QuickAccessTitle>
+                    <QuickAccessDescription>
+                      개인 정보 및 보안 설정
+                    </QuickAccessDescription>
+                  </QuickAccessCard>
+
+                  <QuickAccessCard onClick={() => navigate("/mfa-setup")}>
+                    <QuickAccessIcon $bgColor="#ef4444">
+                      <i className="fas fa-shield-alt"></i>
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>2단계 인증</QuickAccessTitle>
+                    <QuickAccessDescription>
+                      계정 보안 강화
+                    </QuickAccessDescription>
+                  </QuickAccessCard>
+
+                  <QuickAccessCard onClick={() => navigate("/user-manage")}>
+                    <QuickAccessIcon $bgColor="#10b981">
+                      <i className="fas fa-users"></i>
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>사용자 관리</QuickAccessTitle>
+                    <QuickAccessDescription>
+                      사용자 권한 및 계정 관리
+                    </QuickAccessDescription>
+                  </QuickAccessCard>
+
+                  <QuickAccessCard onClick={() => navigate("/report-manage")}>
+                    <QuickAccessIcon $bgColor="#f59e0b">
+                      <i className="fas fa-flag"></i>
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>신고 관리</QuickAccessTitle>
+                    <QuickAccessDescription>
+                      신고 내용 검토 및 처리
+                    </QuickAccessDescription>
+                  </QuickAccessCard>
+                </QuickAccessGrid>
 
                 <RecentActivityCard>
                   <CardHeader>

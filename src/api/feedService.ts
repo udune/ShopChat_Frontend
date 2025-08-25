@@ -638,6 +638,65 @@ export class FeedService {
 
   // 해시태그 관련 기능은 피드 생성/수정 시 함께 처리됩니다
   // 별도의 해시태그 검색이나 인기 해시태그 기능이 필요하면 나중에 추가할 수 있습니다
+
+  /**
+   * 피드 검색 API
+   */
+  static async searchFeeds(params: {
+    q?: string;
+    authorId?: number;
+    feedType?: 'DAILY' | 'EVENT' | 'RANKING';
+    startDate?: string;
+    endDate?: string;
+    productName?: string;
+    productId?: number;
+    eventId?: number;
+    eventTitle?: string;
+    hashtags?: string[];
+    page?: number;
+    size?: number;
+    sort?: 'latest' | 'popular';  // 백엔드에서 지원하는 2가지 옵션만
+  } = {}): Promise<FeedListResponse> {
+    try {
+      console.log('피드 검색 시작:', params);
+      
+      const queryParams = new URLSearchParams();
+      
+      // 파라미터 추가
+      if (params.q) queryParams.append('q', params.q);
+      if (params.authorId) queryParams.append('authorId', params.authorId.toString());
+      if (params.feedType) queryParams.append('feedType', params.feedType);
+      if (params.startDate) queryParams.append('startDate', params.startDate);
+      if (params.endDate) queryParams.append('endDate', params.endDate);
+      if (params.productName) queryParams.append('productName', params.productName);
+      if (params.productId) queryParams.append('productId', params.productId.toString());
+      if (params.eventId) queryParams.append('eventId', params.eventId.toString());
+      if (params.eventTitle) queryParams.append('eventTitle', params.eventTitle);
+      if (params.hashtags) {
+        params.hashtags.forEach(tag => queryParams.append('hashtags', tag));
+      }
+      if (params.page !== undefined) queryParams.append('page', params.page.toString());
+      if (params.size) queryParams.append('size', params.size.toString());
+      if (params.sort) queryParams.append('sort', params.sort);
+
+      const response = await axiosInstance.get<ApiResponse<any>>(`/api/feeds/search?${queryParams.toString()}`);
+      
+      console.log('검색 API 응답:', response.data);
+      
+      // 백엔드 응답을 프론트엔드 타입에 맞게 변환
+      const transformedFeeds = (response.data.data.content || []).map((backendFeed: BackendFeedPost) => 
+        this.transformBackendFeedToFrontend(backendFeed)
+      );
+
+      return {
+        ...response.data.data,
+        content: transformedFeeds,
+      };
+    } catch (error: any) {
+      console.error('피드 검색 실패:', error);
+      throw error;
+    }
+  }
 }
 
 export default FeedService; 

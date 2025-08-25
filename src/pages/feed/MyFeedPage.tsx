@@ -539,6 +539,75 @@ const MyFeedPage = () => {
     }
   };
 
+  // 링크 복사 함수
+  const handleCopyLink = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      
+      // 성공 메시지 표시 (간단한 토스트)
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+      toast.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span>링크가 복사되었습니다!</span>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      
+      // 애니메이션 효과
+      setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+      }, 100);
+      
+      // 3초 후 제거
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('링크 복사 실패:', error);
+      
+      // 폴백: 구식 방식으로 복사
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      // 성공 메시지 표시
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+      toast.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span>링크가 복사되었습니다!</span>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+      }, 100);
+      
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    }
+  };
+
   // 로딩 상태 표시
   if (loading) {
     return (
@@ -608,6 +677,17 @@ const MyFeedPage = () => {
                   >
                     <i className="fas fa-edit mr-1"></i>
                     <span>프로필 수정</span>
+                  </button>
+                )}
+                {/* 링크 복사 버튼 - 특정 사용자 페이지에서만 표시 */}
+                {!isCurrentUser && (
+                  <button 
+                    className="ml-3 text-[#87CEEB] hover:text-blue-400 flex items-center cursor-pointer transition duration-200"
+                    onClick={handleCopyLink}
+                    title="이 페이지 링크 복사"
+                  >
+                    <i className="fas fa-link mr-1"></i>
+                    <span>링크 복사</span>
                   </button>
                 )}
               </div>
@@ -726,6 +806,22 @@ const MyFeedPage = () => {
             <p className="text-gray-600">총 좋아요</p>
           </div>
         </div>
+        
+        {/* 링크 복사 섹션 - 특정 사용자 페이지에서만 표시 */}
+        {!isCurrentUser && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={handleCopyLink}
+              className="bg-gradient-to-r from-[#87CEEB] to-blue-400 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-400 hover:to-[#87CEEB] transition-all duration-200 flex items-center justify-center mx-auto shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              title="이 페이지 링크를 클립보드에 복사합니다"
+            >
+              <i className="fas fa-link mr-2 text-lg"></i>
+            </button>
+            <p className="text-gray-500 text-sm mt-2">
+              인스타그램, SNS 등에 공유할 수 있습니다
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 피드 리스트 렌더링 */}

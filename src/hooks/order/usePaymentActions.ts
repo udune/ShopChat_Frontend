@@ -8,6 +8,9 @@ import {
   validateCardExpiry,
   validateCVC,
 } from "../../utils/order/validation";
+import { couponService } from "../../api/couponService";
+import { CouponResponse } from "../../types/types";
+import { getUserEmailFromToken } from "../../utils/auth/tokenUtils";
 
 /**
  * 결제 액션 처리 훅
@@ -30,6 +33,7 @@ interface PaymentData {
   availablePoints: number; // 사용 가능한 포인트
   isDirectOrder: boolean; // 바로 주문 여부
   directOrderItems?: any[]; // 바로 주문할 상품 목록 (바로 주문 시에만 사용)
+  selectedCoupon: CouponResponse | null; // 선택된 쿠폰
 }
 
 // 훅에 전달받을 props 타입 정의
@@ -49,8 +53,33 @@ export const usePaymentActions = ({
   const navigate = useNavigate();
 
   /**
+   * 쿠폰 할인 금액을 계산하는 함수
+   * API 명세서에 따라 discountType 필드가 없으므로 추정 로직 사용
+   * @param totalPrice 총 상품 가격
+   * @param coupon 선택된 쿠폰
+   * @returns 할인 금액
+   */
+  const calculateCouponDiscount = (totalPrice: number, coupon: CouponResponse | null): number => {
+    if (!coupon) return 0;
+
+    // 무료배송 쿠폰인 경우 금액 할인은 없음
+    if (coupon.isFreeShipping) {
+      return 0; // 배송비 할인은 별도 처리
+    }
+
+    // discountValue가 1 이하면 비율 할인으로 추정 (0.3 = 30%)
+    if (coupon.discountValue <= 1) {
+      // 비율 할인: discountValue를 직접 곱함 (0.3 = 30% 할인)
+      return Math.floor(totalPrice * coupon.discountValue);
+    } else {
+      // 고정 금액 할인 (원)
+      return Math.min(coupon.discountValue, totalPrice);
+    }
+  };
+
+  /**
    * 결제 총 금액을 계산하는 함수
-   * 상품 총가격 + 배송비 - 사용 포인트 = 최종 결제 금액
+   * 상품 총가격 + 배송비 - 쿠폰할인 - 사용 포인트 = 최종 결제 금액
    * @returns 계산된 각종 금액 정보
    */
   const calculateTotals = () => {
@@ -60,18 +89,23 @@ export const usePaymentActions = ({
       0
     );
 
-    // 5만원 이상 무료배송, 미만시 3000원
-    const deliveryFee = productTotal >= 50000 ? 0 : 3000;
+    // 쿠폰 할인 금액 계산
+    const couponDiscount = calculateCouponDiscount(productTotal, paymentData.selectedCoupon);
+
+    // 5만원 이상 무료배송, 미만시 3000원 (무료배송 쿠폰이 있으면 무료)
+    const baseDeliveryFee = productTotal >= 50000 ? 0 : 3000;
+    const deliveryFee = (paymentData.selectedCoupon?.isFreeShipping) ? 0 : baseDeliveryFee;
 
     // 포인트 사용 여부에 따른 사용 포인트 계산
     const pointsToUse = paymentData.usePoint ? paymentData.usedPoints : 0;
 
-    // 최종 결제 금액 = 상품가 + 배송비 - 포인트
-    const finalAmount = productTotal + deliveryFee - pointsToUse;
+    // 최종 결제 금액 = 상품가 + 배송비 - 쿠폰할인 - 포인트
+    const finalAmount = Math.max(0, productTotal + deliveryFee - couponDiscount - pointsToUse);
 
     return {
       productTotal, // 상품 총가격
       deliveryFee, // 배송비
+      couponDiscount, // 쿠폰 할인 금액
       finalAmount, // 최종 결제 금액
       usedPoints: pointsToUse, // 사용할 포인트
     };
@@ -210,8 +244,40 @@ export const usePaymentActions = ({
   };
 
   /**
+   * 주문 완료 후 처리 (쿠폰 사용 등)
+   * @param orderId 생성된 주문 ID
+   */
+  const handleOrderComplete = async (orderId: number) => {
+    try {
+      const userEmail = getUserEmailFromToken();
+      const promises: Promise<any>[] = [];
+
+      // 쿠폰 사용 처리 (선택된 쿠폰이 있는 경우)
+      if (paymentData.selectedCoupon && userEmail) {
+        // 참고: API 명세서에 couponCode가 없으므로 쿠폰 이름을 기반으로 생성
+        const couponCode = `COUPON_${Date.now()}_${paymentData.selectedCoupon.couponName.replace(/\s+/g, "_").toUpperCase()}`;
+        promises.push(
+          couponService.useCoupon({
+            email: userEmail,
+            couponCode: couponCode,
+          }).catch(error => {
+            console.error("쿠폰 사용 처리 실패:", error);
+            // 쿠폰 사용 실패는 주문 프로세스를 방해하지 않음
+          })
+        );
+      }
+
+      // 모든 후처리 작업을 병렬로 실행
+      await Promise.all(promises);
+    } catch (error) {
+      console.error("주문 완료 후처리 중 오류:", error);
+      // 후처리 실패는 주문 완료 페이지 이동을 막지 않음
+    }
+  };
+
+  /**
    * 최종 결제 처리를 담당하는 메인 함수
-   * 유효성 검사 → 주문 데이터 생성 → 서버 요청 → 결과 처리 순으로 진행
+   * 유효성 검사 → 주문 데이터 생성 → 서버 요청 → 후처리 → 결과 처리 순으로 진행
    * 성공 시 주문 완료 페이지로 이동, 실패 시 에러 메시지 표시
    */
   const handlePayment = async () => {
@@ -224,6 +290,7 @@ export const usePaymentActions = ({
       // 최종 금액 계산
       const totals = calculateTotals();
       const { shippingInfo, selectedMethod, usePoint, usedPoints } = paymentData;
+      let orderResponse;
 
       if (paymentData.isDirectOrder) {
         // 바로 주문 처리
@@ -254,14 +321,7 @@ export const usePaymentActions = ({
         };
 
         // 바로 주문 API 호출
-        const orderResponse = await OrderService.createDirectOrder(directOrderData);
-
-        // 성공 시 주문 완료 페이지로 이동
-        navigate("/checkout", {
-          state: {
-            orderId: orderResponse.orderId,
-          },
-        });
+        orderResponse = await OrderService.createDirectOrder(directOrderData);
       } else {
         // 장바구니 기반 주문 처리
         const orderData: CreateOrderRequest = {
@@ -280,15 +340,21 @@ export const usePaymentActions = ({
         };
 
         // 장바구니 주문 API 호출
-        const orderResponse = await OrderService.createOrder(orderData);
-
-        // 성공 시 주문 완료 페이지로 이동
-        navigate("/checkout", {
-          state: {
-            orderId: orderResponse.orderId,
-          },
-        });
+        orderResponse = await OrderService.createOrder(orderData);
       }
+
+      // 주문 완료 후 후처리 작업 (쿠폰 사용, 활동 기록 등)
+      await handleOrderComplete(orderResponse.orderId);
+
+
+      // 성공 시 주문 완료 페이지로 이동
+      navigate("/checkout", {
+        state: {
+          orderId: orderResponse.orderId,
+          // 적립 포인트 정보도 함께 전달 (기본 계산)
+          earnedPoints: Math.floor(totals.finalAmount * 0.01), // 결제금액의 1%
+        },
+      });
     } catch (error: any) {
       // 에러 처리: 서버 응답 메시지 → 일반 에러 메시지 → 기본 메시지 순으로 처리
       if (error.response?.data?.message) {

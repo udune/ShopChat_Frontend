@@ -1,31 +1,35 @@
 import React, { useState, useEffect, useReducer } from "react";
 import styled from "styled-components";
 import { useAuth } from "../../contexts/AuthContext";
-import FeedService from "../../api/feedService";
+import axiosInstance from "../../api/axios";
 import { formatKoreanDate } from "../../utils/dateUtils";
 
-// 타입 정의
+// 백엔드 API 명세에 맞춘 타입 정의
 interface MyCommentItem {
-  id: number;
+  commentId: number;
   content: string;
   createdAt: string;
-  feed: {
-    id: number;
-    title: string;
-    feedType: string;
-    user: {
-      nickname: string;
-      profileImg?: string;
-    };
-  };
+  updatedAt: string;
+  feedId: number;
+  feedTitle: string;
+  feedType: 'DAILY' | 'EVENT' | 'RANKING';
+  authorId: number;
+  authorNickname: string;
+  authorProfileImageUrl?: string;
 }
 
 interface MyCommentListResponse {
-  content: MyCommentItem[];
-  totalElements: number;
-  totalPages: number;
-  currentPage: number;
-  size: number;
+  success: boolean;
+  message: string;
+  data: {
+    content: MyCommentItem[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
 }
 
 // 통합된 상태 타입
@@ -37,6 +41,8 @@ interface CommentsState {
     currentPage: number;
     totalPages: number;
     totalElements: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
   };
   deletingCommentId: number | null;
 }
@@ -50,6 +56,8 @@ const initialState: CommentsState = {
     currentPage: 0,
     totalPages: 0,
     totalElements: 0,
+    hasNext: false,
+    hasPrevious: false,
   },
   deletingCommentId: null,
 };
@@ -58,7 +66,8 @@ const initialState: CommentsState = {
 type CommentsAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_COMMENTS'; payload: MyCommentListResponse }
+  | { type: 'SET_COMMENTS'; payload: MyCommentListResponse['data'] }
+  | { type: 'ADD_COMMENTS'; payload: MyCommentItem[] }
   | { type: 'DELETE_COMMENT'; payload: number }
   | { type: 'SET_DELETING_COMMENT'; payload: number | null }
   | { type: 'SET_CURRENT_PAGE'; payload: number };
@@ -75,17 +84,28 @@ const commentsReducer = (state: CommentsState, action: CommentsAction): Comments
         ...state,
         comments: action.payload.content,
         pagination: {
-          currentPage: action.payload.currentPage,
+          currentPage: action.payload.page,
           totalPages: action.payload.totalPages,
           totalElements: action.payload.totalElements,
+          hasNext: action.payload.hasNext,
+          hasPrevious: action.payload.hasPrevious,
         },
         loading: false,
         error: null,
       };
+    case 'ADD_COMMENTS':
+      return {
+        ...state,
+        comments: [...state.comments, ...action.payload],
+      };
     case 'DELETE_COMMENT':
       return {
         ...state,
-        comments: state.comments.filter(comment => comment.id !== action.payload),
+        comments: state.comments.filter(comment => comment.commentId !== action.payload),
+        pagination: {
+          ...state.pagination,
+          totalElements: state.pagination.totalElements - 1,
+        },
       };
     case 'SET_DELETING_COMMENT':
       return { ...state, deletingCommentId: action.payload };
@@ -258,44 +278,75 @@ const PaginationContainer = styled.div`
   margin-top: 2rem;
 `;
 
-const PaginationButton = styled.button<{ isActive?: boolean }>`
-  background: ${({ isActive }) => isActive ? '#3b82f6' : 'white'};
-  color: ${({ isActive }) => isActive ? 'white' : '#374151'};
-  border: 1px solid #d1d5db;
-  padding: 0.5rem 1rem;
+const LoadMoreContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  padding: 1rem;
+`;
+
+const LoadMoreButton = styled.button`
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${({ isActive }) => isActive ? '#2563eb' : '#f3f4f6'};
+    background: #2563eb;
+    transform: translateY(-1px);
   }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
   }
+`;
+
+const EndMessage = styled.div`
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
 `;
 
 const MyCommentsPage: React.FC = () => {
   const { user } = useAuth();
   const [state, dispatch] = useReducer(commentsReducer, initialState);
 
-  const fetchMyComments = async (page: number = 0) => {
+  const fetchMyComments = async (page: number = 0, isLoadMore: boolean = false) => {
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
+      if (!isLoadMore) {
+        dispatch({ type: 'SET_LOADING', payload: true });
+      }
       dispatch({ type: 'SET_ERROR', payload: null });
       
-      const response = await FeedService.getMyComments(page, 20);
+      const response = await axiosInstance.get(`/api/comments/my?page=${page}&size=20`);
       const data = response.data as MyCommentListResponse;
       
-      dispatch({ type: 'SET_COMMENTS', payload: data });
+      if (isLoadMore) {
+        dispatch({ type: 'ADD_COMMENTS', payload: data.data.content });
+      } else {
+        dispatch({ type: 'SET_COMMENTS', payload: data.data });
+      }
     } catch (error: any) {
       console.error('내 댓글 조회 실패:', error);
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || '댓글 목록을 불러오는데 실패했습니다.' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (state.pagination.hasNext && !state.loading) {
+      fetchMyComments(state.pagination.currentPage + 1, true);
     }
   };
 
@@ -313,8 +364,8 @@ const MyCommentsPage: React.FC = () => {
     try {
       dispatch({ type: 'SET_DELETING_COMMENT', payload: commentId });
       
-      // 댓글 삭제 API 호출
-      await FeedService.deleteComment(commentId, commentId); // feedId와 commentId 모두 commentId로 전달
+              // 댓글 삭제 API 호출
+        await axiosInstance.delete(`/api/comments/${commentId}`);
       
       // 삭제 성공 시 목록에서 제거
       dispatch({ type: 'DELETE_COMMENT', payload: commentId });
@@ -380,17 +431,17 @@ const MyCommentsPage: React.FC = () => {
         <>
           <CommentList>
             {state.comments.map((comment) => (
-              <CommentCard key={comment.id}>
+              <CommentCard key={comment.commentId}>
                 <FeedInfo>
-                  <FeedTypeBadge feedType={comment.feed.feedType}>
-                    {getFeedTypeText(comment.feed.feedType)}
+                  <FeedTypeBadge feedType={comment.feedType}>
+                    {getFeedTypeText(comment.feedType)}
                   </FeedTypeBadge>
-                  <FeedTitle>{comment.feed.title}</FeedTitle>
+                  <FeedTitle>{comment.feedTitle}</FeedTitle>
                   <FeedAuthor>
-                    {comment.feed.user.profileImg && (
-                      <AuthorProfile src={comment.feed.user.profileImg} alt="프로필" />
+                    {comment.authorProfileImageUrl && (
+                      <AuthorProfile src={comment.authorProfileImageUrl} alt="프로필" />
                     )}
-                    <span>{comment.feed.user.nickname}</span>
+                    <span>{comment.authorNickname}</span>
                   </FeedAuthor>
                 </FeedInfo>
 
@@ -401,42 +452,31 @@ const MyCommentsPage: React.FC = () => {
                 <CommentMeta>
                   <CommentDate>{formatKoreanDate(comment.createdAt)}</CommentDate>
                   <DeleteButton
-                    onClick={() => handleDeleteClick(comment.id)}
-                    disabled={state.deletingCommentId === comment.id}
+                    onClick={() => handleDeleteClick(comment.commentId)}
+                    disabled={state.deletingCommentId === comment.commentId}
                   >
-                    {state.deletingCommentId === comment.id ? '삭제 중...' : '삭제'}
+                    {state.deletingCommentId === comment.commentId ? '삭제 중...' : '삭제'}
                   </DeleteButton>
                 </CommentMeta>
               </CommentCard>
             ))}
           </CommentList>
 
-          {state.pagination.totalPages > 1 && (
-            <PaginationContainer>
-              <PaginationButton
-                onClick={() => handlePageChange(state.pagination.currentPage - 1)}
-                disabled={state.pagination.currentPage === 0}
+          {state.pagination.hasNext && (
+            <LoadMoreContainer>
+              <LoadMoreButton
+                onClick={handleLoadMore}
+                disabled={state.loading}
               >
-                이전
-              </PaginationButton>
-              
-              {Array.from({ length: state.pagination.totalPages }, (_, i) => (
-                <PaginationButton
-                  key={i}
-                  isActive={i === state.pagination.currentPage}
-                  onClick={() => handlePageChange(i)}
-                >
-                  {i + 1}
-                </PaginationButton>
-              ))}
-              
-              <PaginationButton
-                onClick={() => handlePageChange(state.pagination.currentPage + 1)}
-                disabled={state.pagination.currentPage === state.pagination.totalPages - 1}
-              >
-                다음
-              </PaginationButton>
-            </PaginationContainer>
+                {state.loading ? '로딩 중...' : '더 보기'}
+              </LoadMoreButton>
+            </LoadMoreContainer>
+          )}
+          
+          {!state.pagination.hasNext && state.comments.length > 0 && (
+            <EndMessage>
+              모든 댓글을 불러왔습니다.
+            </EndMessage>
           )}
         </>
       )}

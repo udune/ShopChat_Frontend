@@ -1,14 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import FeedList from "../../components/feed/FeedList";
 import LikedUsersModal from "../../components/feed/LikedUsersModal";
+import FeedSearchModal from "../../components/feed/FeedSearchModal";
 import FeedService from "../../api/feedService";
 import { EventDto } from "../../api/eventService";
 import axiosInstance from "../../api/axios";
 import { FeedPost, FeedListParams } from "../../types/feed";
 import { useLikedPosts } from "../../hooks/useLikedPosts";
 
+// 디바운싱 훅
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 
 // 더미 이벤트 데이터 제거 - 백엔드에서 가져옴
@@ -35,6 +52,12 @@ const FeedListPage = () => {
   // 좋아요 사용자 모달 상태
   const [showLikedUsersModal, setShowLikedUsersModal] = useState(false);
   const [likedUsers, setLikedUsers] = useState<{ id: number; nickname: string; profileImg?: string; }[]>([]);
+
+  // 검색 관련 상태
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // 실제 입력값
+  const debouncedSearchTerm = useDebounce(searchInput, 300); // 디바운싱된 검색어
 
   // 🔧 백엔드 연동: 이벤트 데이터
   const [events, setEvents] = useState<EventDto[]>([]);
@@ -333,6 +356,56 @@ const FeedListPage = () => {
     });
   };
 
+  // 검색 기능 (디바운싱 적용)
+  const handleSearch = useCallback(async (term: string) => {
+    setSearchTerm(term);
+    setInitialLoading(true);
+    
+    try {
+      if (term.trim()) {
+        // 검색어가 있으면 검색 API 호출
+        console.log('검색어:', term);
+        const searchParams = {
+          q: term.trim(),
+          page: 0,
+          size: postsPerPage,
+          sort: (sortBy === 'latest' ? 'latest' : 'popular') as 'latest' | 'popular'
+        };
+        
+        const searchResult = await FeedService.searchFeeds(searchParams);
+        setFeedPosts(searchResult.content || []);
+        setCurrentPage(0);
+        setHasMore((searchResult as any).hasNext || false);
+        
+        // 백엔드에서 받은 isLiked 상태만 사용
+        const backendLikedIds = searchResult.content
+          .filter((feed: FeedPost) => feed.isLiked)
+          .map((feed: FeedPost) => feed.id);
+        
+        console.log('검색 결과 좋아요 상태 업데이트:', backendLikedIds);
+        updateLikedPosts(backendLikedIds);
+        
+      } else {
+        // 검색어가 없으면 모든 피드 표시
+        await fetchFeeds();
+      }
+    } catch (error) {
+      console.error('검색 실패:', error);
+      setToastMessage("검색 중 오류가 발생했습니다.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    } finally {
+      setInitialLoading(false);
+    }
+  }, [sortBy, postsPerPage, updateLikedPosts]);
+
+  // 디바운싱된 검색어가 변경될 때 검색 실행
+  useEffect(() => {
+    if (debouncedSearchTerm !== searchTerm) {
+      handleSearch(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, handleSearch, searchTerm]);
+
   if (initialLoading) {
     return (
       <div className="p-5 text-center">
@@ -353,6 +426,35 @@ const FeedListPage = () => {
           </div>
         </div>
       )}
+
+      {/* 헤더 - FEED 제목과 검색 아이콘 */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">
+            <span className="bg-gradient-to-r from-[#87CEEB] to-blue-600 bg-clip-text text-transparent">
+              FEED
+            </span>
+          </h1>
+          {searchTerm && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">검색:</span>
+              <span className="text-sm font-medium text-[#87CEEB]">"{searchTerm}"</span>
+              <button
+                onClick={() => handleSearch('')}
+                className="text-gray-400 hover:text-red-500 text-xs"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => setShowSearchModal(true)}
+          className="text-gray-600 hover:text-[#87CEEB] transition-colors p-2 rounded-full hover:bg-gray-100"
+        >
+          <i className="fas fa-search text-2xl"></i>
+        </button>
+      </div>
 
       {/* 탭 네비게이션 */}
       <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
@@ -445,13 +547,33 @@ const FeedListPage = () => {
       {/* 일상 피드 */}
       {activeTab === "all" && (
         <div className="mb-8">
-          <FeedList
-            feeds={feedPosts.filter((f) => f.feedType === "DAILY")}
-            onFeedClick={handleFeedClick}
-            onLikeClick={(feed) => handleLike(feed.id)}
-            onLikeCountClick={handleLikeCountClick}
-            likedPosts={likedPosts}
-          />
+          {searchTerm && feedPosts.filter((f) => f.feedType === "DAILY").length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <i className="fas fa-search text-6xl"></i>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                검색 결과가 없습니다
+              </h3>
+              <p className="text-gray-500 mb-4">
+                "{searchTerm}"에 대한 검색 결과를 찾을 수 없습니다.
+              </p>
+              <button
+                onClick={() => handleSearch('')}
+                className="bg-[#87CEEB] text-white px-6 py-2 rounded-lg hover:bg-blue-400 transition-colors"
+              >
+                전체 피드 보기
+              </button>
+            </div>
+          ) : (
+            <FeedList
+              feeds={feedPosts.filter((f) => f.feedType === "DAILY")}
+              onFeedClick={handleFeedClick}
+              onLikeClick={(feed) => handleLike(feed.id)}
+              onLikeCountClick={handleLikeCountClick}
+              likedPosts={likedPosts}
+            />
+          )}
         </div>
       )}
 
@@ -574,6 +696,13 @@ const FeedListPage = () => {
           onClose={() => setShowLikedUsersModal(false)}
         />
       )}
+
+      {/* 검색 모달 */}
+      <FeedSearchModal
+        open={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSearch={handleSearch}
+      />
     </div>
   );
 };

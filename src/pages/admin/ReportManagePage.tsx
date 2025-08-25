@@ -238,7 +238,7 @@ const ReportManagePage: FC = () => {
   const handleStoreManageClick = () => navigate("/store-home");
   const handleReviewManageClick = () => navigate("/admin-dashboard");
   const handleStatsClick = () => navigate("/stats-dashboard");
-  const handleSettingsClick = () => navigate("/profile");
+  const handleSettingsClick = () => navigate("/admin/settings");
 
   if (loading) {
     return (

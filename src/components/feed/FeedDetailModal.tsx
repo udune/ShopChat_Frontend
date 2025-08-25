@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { FeedPost } from '../../types/feed';
-import FeedVoteButton from './FeedVoteButton';
-import FeedUserProfile from './FeedUserProfile';
-import FollowButton from './FollowButton';
-import { useAuth } from '../../contexts/AuthContext';
-import { UserProfileService } from '../../api/userProfileService';
+import React, { useState, useEffect } from "react";
+import { FeedPost } from "../../types/feed";
+import FeedVoteButton from "./FeedVoteButton";
+import FeedUserProfile from "./FeedUserProfile";
+import FollowButton from "./FollowButton";
+import { useAuth } from "../../contexts/AuthContext";
+import { UserProfileService } from "../../api/userProfileService";
 
 // 한국 시간으로 날짜 포맷팅하는 유틸리티 함수
 const formatKoreanTime = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    const koreanTime = new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Seoul'
+    const koreanTime = new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Seoul",
     }).format(date);
     return koreanTime;
   } catch (error) {
-    console.warn('날짜 파싱 실패:', error);
+    console.warn("날짜 파싱 실패:", error);
     return dateString; // 파싱 실패 시 원본 반환
   }
 };
@@ -84,7 +84,7 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
         const userProfile = await UserProfileService.getUserProfile();
         setCurrentUserId(userProfile.userId || null);
       } catch (error) {
-        console.error('사용자 ID 가져오기 실패:', error);
+        console.error("사용자 ID 가져오기 실패:", error);
       }
     };
 
@@ -92,11 +92,14 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
       getCurrentUserId();
     }
   }, [user]);
-  
+
   if (!open || !feed) return null;
-  const heroImage = feed.images && feed.images.length > 0 ? feed.images[0].imageUrl : 'https://via.placeholder.com/600x800?text=No+Image';
+  const heroImage =
+    feed.images && feed.images.length > 0
+      ? feed.images[0].imageUrl
+      : "https://via.placeholder.com/600x800?text=No+Image";
   const canShowDelete = (showDeleteButton ?? showEditButton) && !!onDelete;
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
@@ -110,7 +113,11 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
         <div className="flex flex-col md:flex-row">
           {/* 이미지 */}
           <div className="md:w-1/2">
-            <img src={heroImage} alt={feed.title} className="w-full h-80 object-cover object-top rounded-l-lg" />
+            <img
+              src={heroImage}
+              alt={feed.title}
+              className="w-full h-80 object-cover object-top rounded-l-lg"
+            />
           </div>
           {/* 상세 정보 */}
           <div className="md:w-1/2 p-6">
@@ -130,35 +137,50 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
                     }}
                   />
                   {/* 팔로우 버튼 */}
-                  {feed.user && user && currentUserId && feed.user.id !== currentUserId && (
-                    <FollowButton
-                      targetUserId={feed.user.id}
-                      targetUserNickname={feed.user.nickname}
-                      size="small"
-                      onFollowChange={onFollowChange}
-                    />
-                  )}
+                  {feed.user &&
+                    user &&
+                    currentUserId &&
+                    feed.user.id !== currentUserId && (
+                      <FollowButton
+                        targetUserId={feed.user.id}
+                        targetUserNickname={feed.user.nickname}
+                        size="small"
+                        onFollowChange={onFollowChange}
+                      />
+                    )}
                 </div>
               )}
             </div>
             <div className="mb-6">
               <h2 className="text-xl font-bold mb-2">{feed.title}</h2>
               {feed.orderItem && (
-                <p className="text-gray-600">신발 사이즈: {feed.orderItem.size}mm</p>
+                <p className="text-gray-600">
+                  신발 사이즈: {feed.orderItem.size}mm
+                </p>
               )}
             </div>
             <div className="mb-6">
               <h3 className="font-medium mb-2">상품 설명</h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{feed.content}</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {feed.content}
+              </p>
             </div>
             <div className="flex items-center justify-between border-t border-gray-200 pt-4">
               <div className="flex space-x-6">
                 <button
-                  className={`flex items-center cursor-pointer focus:outline-none ${liked ? 'text-red-500' : 'text-gray-500 hover:text-[#87CEEB]'}`}
+                  className={`flex items-center cursor-pointer focus:outline-none ${
+                    liked
+                      ? "text-red-500"
+                      : "text-gray-500 hover:text-[#87CEEB]"
+                  }`}
                   onClick={onLike}
                 >
-                  <i className={`fas fa-heart mr-2 ${liked ? 'text-red-500' : ''}`}></i>
-                  <span 
+                  <i
+                    className={`fas fa-heart mr-2 ${
+                      liked ? "text-red-500" : ""
+                    }`}
+                  ></i>
+                  <span
                     className="underline decoration-dotted cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -178,7 +200,7 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 {/* 이벤트 피드인 경우에만 투표 버튼 표시 */}
-                {feed.feedType === 'EVENT' && (
+                {feed.feedType === "EVENT" && (
                   <FeedVoteButton
                     feedId={feed.id}
                     feedType={feed.feedType}
@@ -187,10 +209,10 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
                     size="small"
                     onVoteSuccess={(voteCount) => {
                       // 투표 성공 시 피드 정보 업데이트
-                      console.log('투표 성공:', voteCount);
+                      console.log("투표 성공:", voteCount);
                     }}
                     onVoteError={(error) => {
-                      console.error('투표 에러:', error);
+                      console.error("투표 에러:", error);
                     }}
                   />
                 )}
@@ -217,7 +239,7 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
               <div className="fixed bottom-4 right-4 bg-[#87CEEB] text-white px-6 py-3 rounded-lg shadow-lg z-[70] animate-fade-in-up">
                 <div className="flex items-center">
                   <i className="fas fa-check-circle mr-2"></i>
-                  <span>{toastMessage || '처리가 완료되었습니다.'}</span>
+                  <span>{toastMessage || "처리가 완료되었습니다."}</span>
                 </div>
               </div>
             )}
@@ -229,33 +251,47 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex space-x-3">
                       <img
-                        src={comment.user?.profileImg || "https://readdy.ai/api/search-image?query=default%20profile&width=40&height=40"}
+                        src={
+                          comment.user?.profileImg ||
+                          "https://readdy.ai/api/search-image?query=default%20profile&width=40&height=40"
+                        }
                         alt={comment.user?.nickname || "사용자"}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center">
-                            <span className="font-medium text-sm">{comment.user?.nickname || comment.userNickname || "사용자"}</span>
+                            <span className="font-medium text-sm">
+                              {comment.user?.nickname ||
+                                comment.userNickname ||
+                                "사용자"}
+                            </span>
                             {comment.user?.level && (
                               <div className="ml-2 bg-[#87CEEB] bg-opacity-10 text-[#87CEEB] text-xs px-2 py-0.5 rounded-full">
                                 Lv.{comment.user.level}
                               </div>
                             )}
-                            <span className="ml-2 text-xs text-gray-500">{comment.createdAt}</span>
+                            <span className="ml-2 text-xs text-gray-500">
+                              {comment.createdAt}
+                            </span>
                           </div>
                           {/* 댓글 작성자만 삭제 버튼 표시 */}
-                          {currentUser?.nickname && (comment.user?.nickname || comment.userNickname) === currentUser.nickname && onDeleteComment && (
-                            <button
-                              onClick={() => onDeleteComment(comment.id)}
-                              className="text-red-500 hover:text-red-700 text-xs font-bold"
-                              title="댓글 삭제"
-                            >
-                              ✕
-                            </button>
-                          )}
+                          {currentUser?.nickname &&
+                            (comment.user?.nickname || comment.userNickname) ===
+                              currentUser.nickname &&
+                            onDeleteComment && (
+                              <button
+                                onClick={() => onDeleteComment(comment.id)}
+                                className="text-red-500 hover:text-red-700 text-xs font-bold"
+                                title="댓글 삭제"
+                              >
+                                ✕
+                              </button>
+                            )}
                         </div>
-                        <p className="text-sm text-gray-700">{comment.content}</p>
+                        <p className="text-sm text-gray-700">
+                          {comment.content}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -287,4 +323,4 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({
   );
 };
 
-export default FeedDetailModal; 
+export default FeedDetailModal;

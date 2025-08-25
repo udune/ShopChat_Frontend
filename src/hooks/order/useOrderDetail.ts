@@ -28,8 +28,9 @@ export const useOrderDetail = (): UseOrderDetailReturn => {
   // 에러 상태
   const [error, setError] = useState<string | null>(null);
 
-  // 라우터 state에서 주문 ID 추출
+  // 라우터 state에서 주문 ID와 적립 포인트 추출
   const orderId = location.state?.orderId;
+  const earnedPoints = location.state?.earnedPoints;
 
   useEffect(() => {
     /**
@@ -48,6 +49,12 @@ export const useOrderDetail = (): UseOrderDetailReturn => {
         
         // OrderService를 통해 주문 상세 정보 요청
         const detail = await OrderService.getOrderDetail(orderId);
+        
+        // 적립 포인트가 라우터 state에서 전달된 경우 병합
+        if (earnedPoints !== undefined) {
+          detail.earnedPoints = earnedPoints;
+        }
+        
         setOrderDetail(detail); // 성공시 데이터 설정
         setError(null);         // 이전 에러 초기화
       } catch (err: any) {

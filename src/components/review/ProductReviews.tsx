@@ -15,6 +15,7 @@ import { ReviewEditModal } from "./ReviewEditModal";
 import ReviewService from "../../api/reviewService";
 import { formatNumber, calculateAverageRating, getRatingPercentages } from "../../utils/review/reviewHelpers";
 import { useAuth } from "../../contexts/AuthContext"; // AuthContext 추가
+import { useReviewReport } from "../../hooks/review/useReviewReport"; // 리뷰 신고 훅 추가
 // import { useReviewActions as useReviewActionsHook } from "../../hooks/review/useReviewActions"; // 리뷰 액션 훅 추가
 import { 
   ReviewSortOption, 
@@ -245,6 +246,9 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
   // =============== AuthContext 사용 ===============
   const { user } = useAuth();
   const location = useLocation();
+
+  // =============== 리뷰 신고 훅 사용 ===============
+  const { addReportedReview, isReportedReview } = useReviewReport();
 
   // =============== 상태 관리 ===============
   
@@ -918,6 +922,8 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
                 onDelete={handleDeleteReview}
                 enableInfiniteScroll={enableInfiniteScroll}
                 emptyMessage="아직 작성된 리뷰가 없습니다.\n첫 번째 리뷰를 작성해보세요!"
+                isReportedReview={isReportedReview}
+                onReportSuccess={addReportedReview}
             />
           </ReviewsContent>
         </Container>

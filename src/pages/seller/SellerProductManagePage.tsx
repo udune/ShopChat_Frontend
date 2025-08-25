@@ -1026,7 +1026,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     <ImagePreview>
                       {image.url ? (
                         <img
-                          src={toUrl(image.url)}
+                          src={image.url.startsWith('data:') ? image.url : toUrl(image.url)}
                           alt={`상품 이미지 ${index + 1}`}
                         />
                       ) : (

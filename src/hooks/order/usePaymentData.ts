@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { PaymentItem } from "../../types/order";
 import CartService from "../../api/cartService";
+import { UserProfileService, UserProfileData } from "../../api/userProfileService";
+import { AddressService } from "../../api/addressService";
+import { AddressResponse } from "../../types/types";
+import { pointService, PointBalance } from "../../api/pointService";
+import { couponService } from "../../api/couponService";
+import { CouponResponse } from "../../types/types";
+import { getUserEmailFromToken } from "../../utils/auth/tokenUtils";
 
 /**
  * 결제 데이터 관리 훅
@@ -37,6 +44,13 @@ interface PaymentState {
   isDirectOrder: boolean;                  // 바로 주문 여부 (장바구니 경유 X)
   tempCartItemIds: number[];               // 임시 장바구니 아이템 ID들
   directOrderItems: any[];                 // 바로 주문할 상품 목록 (바로 주문 시에만 사용)
+  // 새로 추가된 데이터들
+  userProfile: UserProfileData | null;     // 사용자 프로필 정보
+  addresses: AddressResponse[];            // 배송지 목록
+  selectedAddress: AddressResponse | null; // 선택된 배송지
+  pointBalance: PointBalance | null;       // 포인트 잔액 정보
+  availableCoupons: CouponResponse[];      // 사용 가능한 쿠폰 목록
+  selectedCoupon: CouponResponse | null;   // 선택된 쿠폰
 }
 
 // 훅에서 반환할 값들의 타입 정의 (PaymentState + 추가 기능들)
@@ -50,12 +64,15 @@ interface UsePaymentDataReturn extends PaymentState {
   setIsProcessing: (processing: boolean) => void;                    // 처리 상태 설정 함수
   handleDeliveryRequestChange: (option: string) => void;             // 배송 요청사항 변경 처리 함수
   handlePointToggle: (enabled: boolean) => void;                     // 포인트 사용 토글 처리 함수
+  // 새로 추가된 함수들
+  setSelectedAddress: (address: AddressResponse | null) => void;     // 배송지 선택 함수
+  setSelectedCoupon: (coupon: CouponResponse | null) => void;        // 쿠폰 선택 함수
+  loadInitialData: () => Promise<void>;                              // 초기 데이터 로딩 함수
+  applyCouponByCode: (couponCode: string) => Promise<void>;       // 쿠폰 코드로 쿠폰 적용 함수
 }
 
 export const usePaymentData = (): UsePaymentDataReturn => {
   const location = useLocation();
-  // 사용자가 보유한 포인트 (현재는 고정값, 추후 API로 대체 필요)
-  const [availablePoints] = useState(5000);
 
   // 결제 관련 모든 상태를 하나의 객체로 관리
   const [state, setState] = useState<PaymentState>({
@@ -80,7 +97,81 @@ export const usePaymentData = (): UsePaymentDataReturn => {
     isDirectOrder: false,             // 장바구니 경유 주문으로 기본 설정
     tempCartItemIds: [],              // 임시 장바구니 ID 목록
     directOrderItems: [],             // 바로 주문 상품 목록
+    // 새로 추가된 상태들
+    userProfile: null,                // 사용자 프로필 (초기에는 null)
+    addresses: [],                    // 배송지 목록 (초기에는 빈 배열)
+    selectedAddress: null,            // 선택된 배송지 (초기에는 null)
+    pointBalance: null,               // 포인트 잔액 (초기에는 null)
+    availableCoupons: [],             // 사용 가능한 쿠폰 목록 (초기에는 빈 배열)
+    selectedCoupon: null,             // 선택된 쿠폰 (초기에는 null)
   });
+
+  /**
+   * 주문 페이지에서 필요한 모든 초기 데이터를 로딩하는 함수
+   * - 사용자 프로필 정보
+   * - 배송지 목록
+   * - 포인트 잔액 정보
+   * - 사용 가능한 쿠폰 목록
+   * - 사용자 레벨 정보
+   */
+  const loadInitialData = async () => {
+    try {
+      const userEmail = getUserEmailFromToken();
+      if (!userEmail) {
+        throw new Error("사용자 인증 정보를 찾을 수 없습니다.");
+      }
+
+      // 모든 초기 데이터를 병렬로 조회
+      const [userProfile, addresses, pointBalance, availableCoupons] = await Promise.all([
+        UserProfileService.getUserProfile(),
+        AddressService.getAddresses(),
+        pointService.getPointBalance(),
+        couponService.getAvailableCoupons(userEmail),
+      ]);
+
+      // 기본 배송지 찾기
+      const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0] || null;
+
+      setState(prev => ({
+        ...prev,
+        userProfile,
+        addresses,
+        selectedAddress: defaultAddress,
+        pointBalance,
+        availableCoupons,
+      }));
+
+      // 프로필 정보로 배송 정보 자동 채우기
+      if (userProfile) {
+        setState(prev => ({
+          ...prev,
+          shippingInfo: {
+            ...prev.shippingInfo,
+            name: prev.shippingInfo.name || userProfile.name || "",
+            phone: prev.shippingInfo.phone || userProfile.phone || "",
+          },
+        }));
+      }
+
+      // 기본 배송지로 배송 정보 자동 채우기
+      if (defaultAddress) {
+        setState(prev => ({
+          ...prev,
+          shippingInfo: {
+            ...prev.shippingInfo,
+            name: prev.shippingInfo.name || defaultAddress.recipientName,
+            phone: prev.shippingInfo.phone || defaultAddress.recipientPhone,
+            zipcode: defaultAddress.zipCode,
+            address: defaultAddress.addressLine1,
+            detailAddress: defaultAddress.addressLine2 || "",
+          },
+        }));
+      }
+    } catch (error) {
+      console.error("초기 데이터 로딩 실패:", error);
+      // 초기 데이터 로딩 실패는 주문 프로세스를 완전히 차단하지 않음
+    }
+  };
 
   /**
    * 바로 주문 상품들을 로드하는 함수
@@ -153,6 +244,9 @@ export const usePaymentData = (): UsePaymentDataReturn => {
       } else {
         throw new Error("주문 정보를 불러오는데 실패했습니다.");
       }
+      
+      // 바로 주문인 경우에도 초기 데이터 로딩 (사용자 프로필, 배송지, 포인트, 쿠폰 등)
+      loadInitialData();
       return;
     }
 
@@ -177,6 +271,9 @@ export const usePaymentData = (): UsePaymentDataReturn => {
     } else {
       throw new Error("주문 정보를 불러오는데 실패했습니다.");
     }
+
+    // 초기 데이터 로딩 (사용자 프로필, 배송지, 포인트, 쿠폰 등)
+    loadInitialData();
   }, [location.state]); // location.state가 변경될 때마다 재실행
 
   /**
@@ -226,10 +323,73 @@ export const usePaymentData = (): UsePaymentDataReturn => {
     }));
   };
 
+  /**
+   * 배송지를 선택하는 함수
+   * @param address 선택된 배송지
+   */
+  const setSelectedAddress = (address: AddressResponse | null) => {
+    setState(prev => ({ ...prev, selectedAddress: address }));
+    
+    // 배송지 선택 시 배송 정보도 자동으로 업데이트
+    if (address) {
+      setState(prev => ({
+        ...prev,
+        shippingInfo: {
+          ...prev.shippingInfo,
+          name: address.recipientName,
+          phone: address.recipientPhone,
+          zipcode: address.zipCode,
+          address: address.addressLine1,
+          detailAddress: address.addressLine2 || "",
+        },
+      }));
+    }
+  };
+
+  /**
+   * 쿠폰을 선택하는 함수
+   * @param coupon 선택된 쿠폰
+   */
+  const setSelectedCoupon = (coupon: CouponResponse | null) => {
+    setState(prev => ({ ...prev, selectedCoupon: coupon }));
+  };
+
+  /**
+   * 쿠폰 코드를 사용하여 쿠폰을 적용하는 함수
+   * @param couponCode 적용할 쿠폰 코드
+   */
+  const applyCouponByCode = async (couponCode: string) => {
+    try {
+      const userEmail = getUserEmailFromToken();
+      if (!userEmail) {
+        throw new Error("사용자 인증 정보를 찾을 수 없습니다.");
+      }
+
+      // 쿠폰 사용 API 호출
+      const appliedCoupon = await couponService.useCoupon({
+        email: userEmail,
+        couponCode: couponCode
+      });
+      
+      // 적용된 쿠폰을 선택된 쿠폰으로 설정
+      setState(prev => ({ 
+        ...prev, 
+        selectedCoupon: appliedCoupon,
+        // 적용된 쿠폰을 사용 가능한 쿠폰 목록에도 추가 (중복 방지)
+        availableCoupons: prev.availableCoupons.some(c => c.couponName === appliedCoupon.couponName) 
+          ? prev.availableCoupons 
+          : [appliedCoupon, ...prev.availableCoupons]
+      }));
+    } catch (error) {
+      // 에러는 호출하는 컴포넌트에서 처리하도록 다시 throw
+      throw error;
+    }
+  };
+
   // 모든 상태와 함수들을 반환
   return {
     ...state,                    // 현재 상태의 모든 값들 포함
-    availablePoints,             // 사용 가능한 포인트
+    availablePoints: state.pointBalance?.currentPoints || 0, // 실제 포인트 잔액 사용
     updateShippingInfo,          // 배송 정보 업데이트 함수
     
     // 간단한 setter 함수들 (인라인 함수로 정의)
@@ -247,5 +407,9 @@ export const usePaymentData = (): UsePaymentDataReturn => {
     // 복잡한 로직을 포함하는 핸들러 함수들
     handleDeliveryRequestChange,
     handlePointToggle,
+    setSelectedAddress,
+    setSelectedCoupon,
+    loadInitialData,
+    applyCouponByCode,
   };
 };

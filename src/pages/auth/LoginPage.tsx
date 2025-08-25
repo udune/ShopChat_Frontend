@@ -163,11 +163,26 @@ export default function LoginPage() {
       // --- 로그인 성공 시 추가된 로직 ---
       // console.log('로그인 성공 응답:', response.data);
       const loginData = response.data.data;
+
+      // 백엔드에서 MFA 상태를 확인하여 응답에 포함시켰으므로 직접 확인
+      if (loginData && loginData.requiresMfa) {
+        // MFA가 활성화된 경우 2단계 인증 페이지로 이동
+        console.log("MFA가 활성화되어 2단계 인증이 필요합니다.");
+        navigate("/mfa-verification", {
+          state: {
+            email: loginData.email,
+            tempToken: loginData.tempToken,
+          },
+        });
+        return;
+      }
+
       if (loginData && loginData.token) {
-        // authLogin 함수를 4개의 인자를 받도록 수정 (name 추가)
+        // 일반 로그인 성공
         authLogin(
           loginData.nickname,
           loginData.name || loginData.nickname,
+          loginData.email || email,
           loginData.role,
           loginData.token
         );
