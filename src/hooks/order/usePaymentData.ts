@@ -120,84 +120,63 @@ export const usePaymentData = (): UsePaymentDataReturn => {
    * - 사용자 레벨 정보
    */
   const loadInitialData = async () => {
-    const userEmail = getUserEmailFromToken();
-    if (!userEmail) {
-      console.error("사용자 인증 정보를 찾을 수 없습니다.");
-      return;
-    }
-
-    // 각 API를 개별적으로 호출하여 일부 실패해도 다른 데이터는 로드되도록 함
-    let userProfile = null;
-    let addresses: AddressResponse[] = [];
-    let pointBalance = null;
-    let availableCoupons: CouponResponse[] = [];
-
-    // 사용자 프로필 로딩
     try {
-      userProfile = await UserProfileService.getUserProfile();
-    } catch (error) {
-      console.error("사용자 프로필 로딩 실패:", error);
-    }
+      const userEmail = getUserEmailFromToken();
+      if (!userEmail) {
+        throw new Error("사용자 인증 정보를 찾을 수 없습니다.");
+      }
 
-    // 배송지 목록 로딩
-    try {
-      addresses = await AddressService.getAddresses();
-    } catch (error) {
-      console.error("배송지 목록 로딩 실패:", error);
-    }
+      // 모든 초기 데이터를 병렬로 조회
+      const [userProfile, addresses, pointBalance, availableCoupons] =
+        await Promise.all([
+          UserProfileService.getUserProfile(),
+          AddressService.getAddresses(),
+          pointService.getPointBalance(),
+          couponService.getAvailableCoupons(userEmail),
+        ]);
 
-    // 포인트 잔액 로딩
-    try {
-      pointBalance = await pointService.getPointBalance();
-    } catch (error) {
-      console.error("포인트 잔액 로딩 실패:", error);
-    }
+      // 기본 배송지 찾기
+      const defaultAddress =
+        addresses.find((addr) => addr.isDefault) || addresses[0] || null;
 
-    // 사용 가능한 쿠폰 목록 로딩
-    try {
-      availableCoupons = await couponService.getAvailableCoupons(userEmail);
-    } catch (error) {
-      console.error("쿠폰 목록 로딩 실패:", error);
-    }
-
-    // 기본 배송지 찾기
-    const defaultAddress =
-      addresses.find((addr) => addr.isDefault) || addresses[0] || null;
-
-    setState((prev) => ({
-      ...prev,
-      userProfile,
-      addresses,
-      selectedAddress: defaultAddress,
-      pointBalance,
-      availableCoupons,
-    }));
-
-    // 프로필 정보로 배송 정보 자동 채우기
-    if (userProfile) {
       setState((prev) => ({
         ...prev,
-        shippingInfo: {
-          ...prev.shippingInfo,
-          name: prev.shippingInfo.name || userProfile.name || "",
-          phone: prev.shippingInfo.phone || userProfile.phone || "",
-        },
+        userProfile,
+        addresses,
+        selectedAddress: defaultAddress,
+        pointBalance,
+        availableCoupons,
       }));
-    }
 
-    // 기본 배송지로 배송 정보 자동 채우기
-    if (defaultAddress) {
-      setState((prev) => ({
-        ...prev,
-        shippingInfo: {
-          ...prev.shippingInfo,
-          name: prev.shippingInfo.name || defaultAddress.recipientName,
-          phone: prev.shippingInfo.phone || defaultAddress.recipientPhone,
-          zipcode: defaultAddress.zipCode,
-          address: defaultAddress.addressLine1,
-          detailAddress: defaultAddress.addressLine2 || "",
-        },
-      }));
+      // 프로필 정보로 배송 정보 자동 채우기
+      if (userProfile) {
+        setState((prev) => ({
+          ...prev,
+          shippingInfo: {
+            ...prev.shippingInfo,
+            name: prev.shippingInfo.name || userProfile.name || "",
+            phone: prev.shippingInfo.phone || userProfile.phone || "",
+          },
+        }));
+      }
+
+      // 기본 배송지로 배송 정보 자동 채우기
+      if (defaultAddress) {
+        setState((prev) => ({
+          ...prev,
+          shippingInfo: {
+            ...prev.shippingInfo,
+            name: prev.shippingInfo.name || defaultAddress.recipientName,
+            phone: prev.shippingInfo.phone || defaultAddress.recipientPhone,
+            zipcode: defaultAddress.zipCode,
+            address: defaultAddress.addressLine1,
+            detailAddress: defaultAddress.addressLine2 || "",
+          },
+        }));
+      }
+    } catch (error) {
+      console.error("초기 데이터 로딩 실패:", error);
+      // 초기 데이터 로딩 실패는 주문 프로세스를 완전히 차단하지 않음
     }
   };
 
