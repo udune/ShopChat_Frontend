@@ -28,6 +28,34 @@ export const getFeedTypeColor = (feedType: FeedType): string => {
   }
 };
 
+
+// 이벤트 상태 텍스트 변환
+export const getEventStatusText = (eventStatus?: string): string => {
+  switch (eventStatus) {
+    case 'UPCOMING':
+      return '예정';
+    case 'ONGOING':
+      return '진행중';
+    case 'ENDED':
+      return '종료';
+    default:
+      return '알 수 없음';
+  }
+};
+
+// 이벤트 상태 색상 반환
+export const getEventStatusColor = (eventStatus?: string): string => {
+  switch (eventStatus) {
+    case 'UPCOMING':
+      return 'bg-blue-500';
+    case 'ONGOING':
+      return 'bg-green-500';
+    case 'ENDED':
+      return 'bg-gray-500';
+    default:
+      return 'bg-gray-400';
+  }
+};
 // 피드 타입 그라데이션 배경 반환
 export const getFeedTypeGradient = (feedType: FeedType): string => {
   switch (feedType) {

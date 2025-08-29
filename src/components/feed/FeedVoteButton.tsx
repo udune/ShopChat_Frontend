@@ -7,6 +7,9 @@ interface FeedVoteButtonProps {
   feedType: FeedType;
   participantVoteCount: number;
   isVoted?: boolean; // 피드에서 받은 투표 상태
+  eventStatus?: string; // 이벤트 상태 (ONGOING, ENDED, UPCOMING)
+  canVote?: boolean; // 투표 가능 여부
+  isOwnFeed?: boolean; // 본인 피드 여부
   size?: 'small' | 'medium' | 'large'; // 버튼 크기
   onVoteSuccess?: (voteCount: number) => void;
   onVoteError?: (error: any) => void;
@@ -17,6 +20,9 @@ const FeedVoteButton: React.FC<FeedVoteButtonProps> = ({
   feedType,
   participantVoteCount,
   isVoted: initialIsVoted,
+  eventStatus,
+  canVote = true, // 기본값은 true
+  isOwnFeed = false, // 기본값은 false
   size = 'medium', // 기본값은 medium
   onVoteSuccess,
   onVoteError,
@@ -31,9 +37,9 @@ const FeedVoteButton: React.FC<FeedVoteButtonProps> = ({
   useEffect(() => {
     if (initialIsVoted !== undefined) {
       setVoted(initialIsVoted);
-      console.log(`초기 투표 상태 설정 - feedId: ${feedId}, isVoted: ${initialIsVoted}`);
+      console.log(`초기 투표 상태 설정 - feedId: ${feedId}, isVoted: ${initialIsVoted}, feedType: ${feedType}, eventStatus: ${eventStatus}, canVote: ${canVote}`);
     }
-  }, [initialIsVoted, feedId]);
+  }, [initialIsVoted, feedId, feedType, eventStatus, canVote]);
 
   // 초기 투표 상태 확인 (피드에서 받은 상태가 없거나 false인 경우)
   useEffect(() => {
@@ -65,7 +71,34 @@ const FeedVoteButton: React.FC<FeedVoteButtonProps> = ({
   const handleVote = async () => {
     if (loading) return;
     
-    console.log(`투표 시작 - feedId: ${feedId}`);
+    // feedId 유효성 검사
+    if (!feedId || feedId === undefined) {
+      console.error('투표 실패: feedId가 유효하지 않습니다', feedId);
+      setErrorMessage('피드 ID가 유효하지 않습니다.');
+      if (onVoteError) {
+        onVoteError(new Error('피드 ID가 유효하지 않습니다.'));
+      }
+      return;
+    }
+
+    // 이벤트 상태 검증 (eventStatus가 undefined인 경우는 백엔드에서 처리)
+    if (eventStatus && eventStatus !== 'ONGOING') {
+      console.error('투표 실패: 이벤트가 진행중이 아닙니다', eventStatus);
+      setErrorMessage('진행중인 이벤트에만 투표할 수 있습니다.');
+      if (onVoteError) {
+        onVoteError(new Error('진행중인 이벤트에만 투표할 수 있습니다.'));
+      }
+      return;
+    }
+
+    // 이미 투표한 경우
+    if (voted) {
+      console.log('이미 투표한 피드입니다');
+      setErrorMessage('이미 투표한 이벤트입니다.');
+      return;
+    }
+    
+    console.log(`투표 시작 - feedId: ${feedId}, feedType: ${feedType}, eventStatus: ${eventStatus}`);
     setLoading(true);
     try {
       const result = await FeedService.voteFeed(feedId);
@@ -140,8 +173,21 @@ const FeedVoteButton: React.FC<FeedVoteButtonProps> = ({
     }
   };
 
-  // 이벤트가 아니면 버튼을 숨김
-  if (feedType !== 'EVENT') {
+  // 이벤트가 아니거나 투표할 수 없는 상태면 버튼을 숨김
+  if (feedType !== 'EVENT' || !canVote) {
+    console.log(`투표 버튼 숨김 - feedType: ${feedType}, canVote: ${canVote}`);
+    return null;
+  }
+
+  // 본인 피드면 버튼을 숨김
+  if (isOwnFeed) {
+    console.log(`투표 버튼 숨김 - 본인 피드: ${isOwnFeed}`);
+    return null;
+  }
+
+  // 이벤트 상태가 명시적으로 진행중이 아니면 버튼을 숨김 (undefined는 백엔드에서 처리)
+  if (eventStatus && eventStatus !== 'ONGOING') {
+    console.log(`투표 버튼 숨김 - eventStatus: ${eventStatus}`);
     return null;
   }
 

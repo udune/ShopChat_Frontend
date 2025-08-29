@@ -2,7 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { FeedPost } from "../../types/feed";
 import FeedUserProfile from "./FeedUserProfile";
-import { getFeedTypeText, formatFeedDate } from "../../utils/feedUtils";
+import { getFeedTypeText, formatFeedDate, getEventStatusText, getEventStatusColor } from "../../utils/feedUtils";
 
 interface FeedCardProps {
   feed: FeedPost;
@@ -196,6 +196,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
           <EventBadge eventType={feed.eventType}>
             <i className="fas fa-star mr-1"></i>
             {getFeedTypeText(feed.feedType)}
+            {feed.eventStatus && (
+              <span className="ml-2 px-2 py-1 text-xs rounded-full" style={{
+                backgroundColor: getEventStatusColor(feed.eventStatus) === 'bg-green-500' ? '#10b981' :
+                                getEventStatusColor(feed.eventStatus) === 'bg-blue-500' ? '#3b82f6' :
+                                getEventStatusColor(feed.eventStatus) === 'bg-gray-500' ? '#6b7280' : '#9ca3af'
+              }}>
+                {getEventStatusText(feed.eventStatus)}
+              </span>
+            )}
           </EventBadge>
         )}
       </ImageContainer>

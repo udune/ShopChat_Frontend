@@ -81,6 +81,29 @@ class EventService {
   }
 
   /**
+   * 이벤트 검색/필터/정렬 (QueryDSL 기반)
+   */
+  async searchEvents(params?: {
+    page?: number;
+    size?: number;
+    status?: string;
+    type?: string;
+    keyword?: string;
+    sort?: string;
+  }): Promise<EventListResponseDto> {
+    try {
+      console.log('이벤트 검색 API 호출 파라미터:', params);
+      const response = await axiosInstance.get<EventListResponseDto>('/api/events/search', { params });
+      console.log('이벤트 검색 API 응답:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('이벤트 검색 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 특정 이벤트 상세 조회
    */
   async getEventById(eventId: number): Promise<EventDto | null> {

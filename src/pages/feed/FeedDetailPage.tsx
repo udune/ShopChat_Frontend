@@ -45,6 +45,7 @@ const FeedDetailPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // 좋아요 상태 관리
   const { isLiked: isLikedGlobal, updateLikedPosts, likedPosts } = useLikedPosts();
@@ -439,7 +440,7 @@ const FeedDetailPage = () => {
                   {feed.orderItem.size && <p className="text-gray-600">신발 사이즈: {feed.orderItem.size}mm</p>}
                 </>
               )}
-              <p className="text-gray-500 text-sm">작성일: {feed.createdAt}</p>
+              <p className="text-gray-500 text-sm">작성일: {formatKoreanTime(feed.createdAt)}</p>
             </div>
 
             {/* 해시태그 */}
@@ -470,12 +471,15 @@ const FeedDetailPage = () => {
                       return null;
                     }
                     
+                    // #이 이미 포함되어 있으면 그대로 사용, 없으면 추가
+                    const displayText = tagText && tagText.startsWith('#') ? tagText : `#${tagText || ''}`;
+                    
                     return (
                       <span
                         key={key}
                         className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
                       >
-                        #{tagText}
+                        {displayText}
                       </span>
                     );
                   })}
@@ -523,6 +527,9 @@ const FeedDetailPage = () => {
                   feedType={feed.feedType}
                   participantVoteCount={feed.participantVoteCount || 0}
                   isVoted={feed.isVoted}
+                  eventStatus={feed.eventStatus}
+                  canVote={feed.canVote}
+                  isOwnFeed={user?.nickname === feed.user?.nickname}
                   size="medium"
                   onVoteSuccess={(voteCount) => {
                     // 투표 성공 시 피드 정보 업데이트
@@ -550,9 +557,16 @@ const FeedDetailPage = () => {
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
                     <img
-                      src={comment.user?.profileImg || "https://readdy.ai/api/search-image?query=default%20profile&width=40&height=40"}
+                      src={comment.user?.profileImg || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNEN0Q5REIiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjNjc3NDhCIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTYuMzMgNyAxOVYyMEgxN1YxOUMxNyAxNi4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM2Nzc0OEIiLz4KPC9zdmc+Cjwvc3ZnPgo="}
                       alt={comment.user?.nickname || "사용자"}
                       className="w-8 h-8 rounded-full object-cover"
+                      onError={(e) => {
+                        const imgSrc = e.currentTarget.src;
+                        if (!failedImages.has(imgSrc)) {
+                          setFailedImages(prev => new Set(prev).add(imgSrc));
+                        }
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNEN0Q5REIiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjNjc3NDhCIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTYuMzMgNyAxOVYyMEgxN1YxOUMxNyAxNi4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM2Nzc0OEIiLz4KPC9zdmc+Cjwvc3ZnPgo=";
+                      }}
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -637,9 +651,16 @@ const FeedDetailPage = () => {
                 {likeUsers.map((u, idx) => (
                   <li key={idx} className="flex items-center gap-3 py-2">
                     <img
-                      src={u.profileImg || 'https://via.placeholder.com/40'}
+                      src={u.profileImg || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNEN0Q5REIiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjNjc3NDhCIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTYuMzMgNyAxOVYyMEgxN1YxOUMxNyAxNi4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM2Nzc0OEIiLz4KPC9zdmc+Cjwvc3ZnPgo="}
                       alt={u.nickname}
                       className="w-8 h-8 rounded-full object-cover"
+                      onError={(e) => {
+                        const imgSrc = e.currentTarget.src;
+                        if (!failedImages.has(imgSrc)) {
+                          setFailedImages(prev => new Set(prev).add(imgSrc));
+                        }
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNEN0Q5REIiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjNjc3NDhCIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTYuMzMgNyAxOVYyMEgxN1YxOUMxNyAxNi4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM2Nzc0OEIiLz4KPC9zdmc+Cjwvc3ZnPgo=";
+                      }}
                     />
                     <span className="text-sm text-gray-800">{u.nickname}</span>
                   </li>
