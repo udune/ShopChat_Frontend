@@ -105,15 +105,15 @@ export default function LoginPage() {
   const isEmailValid = validateEmail(email);
   const { login: authLogin } = useAuth();
 
-  const { executeRecaptcha } = useGoogleReCaptcha();
-  const [isRecaptchaReady, setIsRecaptchaReady] = useState(false);
+  // const { executeRecaptcha } = useGoogleReCaptcha();
+  // const [isRecaptchaReady, setIsRecaptchaReady] = useState(false);
 
-  useEffect(() => {
-    // executeRecaptcha 함수가 준비되면 상태를 true로 변경
-    if (executeRecaptcha) {
-      setIsRecaptchaReady(true);
-    }
-  }, [executeRecaptcha]);
+  // useEffect(() => {
+  //   // executeRecaptcha 함수가 준비되면 상태를 true로 변경
+  //   if (executeRecaptcha) {
+  //     setIsRecaptchaReady(true);
+  //   }
+  // }, [executeRecaptcha]);
 
   // 소셜 로그인 콜백에서 전달된 에러 처리
   useEffect(() => {
@@ -127,13 +127,13 @@ export default function LoginPage() {
     e.preventDefault();
     console.log("handleSubmit 함수가 호출되었습니다.");
 
-    if (!isRecaptchaReady || !executeRecaptcha) {
-      // alert()를 setError로 변경
-      setError("reCAPTCHA 로딩 중입니다. 잠시 후 다시 시도해주세요.");
-      setLoading(false);
-      return;
-    }
-    console.log("reCAPTCHA가 준비되었습니다.");
+    // if (!isRecaptchaReady || !executeRecaptcha) {
+    //   // alert()를 setError로 변경
+    //   setError("reCAPTCHA 로딩 중입니다. 잠시 후 다시 시도해주세요.");
+    //   setLoading(false);
+    //   return;
+    // }
+    // console.log("reCAPTCHA가 준비되었습니다.");
 
     setError("");
     setLoading(true);
@@ -141,12 +141,12 @@ export default function LoginPage() {
     try {
       if (!isEmailValid) throw new Error("올바른 이메일 형식을 입력해주세요.");
 
-      const recaptchaToken = await executeRecaptcha("login_submit");
+      // const recaptchaToken = await executeRecaptcha("login_submit");
       // console.log('생성된 reCAPTCHA 토큰:', recaptchaToken);
 
-      if (!recaptchaToken) {
-        throw new Error("reCAPTCHA 인증에 실패했습니다. 다시 시도해주세요.");
-      }
+      // if (!recaptchaToken) {
+      //   throw new Error("reCAPTCHA 인증에 실패했습니다. 다시 시도해주세요.");
+      // }
 
       const baseURL = process.env.REACT_APP_API_URL || "https://localhost:8443";
       // console.log('로그인 요청 전송:', {
@@ -157,7 +157,7 @@ export default function LoginPage() {
       const response = await axios.post(`${baseURL}/api/auth/login`, {
         email,
         password,
-        recaptchaToken,
+        // recaptchaToken,
       });
 
       // --- 로그인 성공 시 추가된 로직 ---
