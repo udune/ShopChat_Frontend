@@ -4,8 +4,8 @@ interface ImageBaseUrls {
 }
 
 const IMAGE_BASE_URLS: ImageBaseUrls = {
-  development: "https://dev.cdn-feedshop.store",
-  production: "https://cdn-feedshop.store",
+  development: "https://storage.googleapis.com/feedshop-uploads",
+  production: "https://storage.googleapis.com/feedshop-uploads",
 };
 
 // 현재 환경에 따른 베이스 URL 선택
