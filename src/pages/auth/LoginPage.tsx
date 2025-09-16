@@ -141,6 +141,7 @@ export default function LoginPage() {
     try {
       if (!isEmailValid) throw new Error("올바른 이메일 형식을 입력해주세요.");
 
+      const recaptchaToken = "03AFcWeA..."; // 테스트용 더미 토큰
       // const recaptchaToken = await executeRecaptcha("login_submit");
       // console.log('생성된 reCAPTCHA 토큰:', recaptchaToken);
 
@@ -157,7 +158,7 @@ export default function LoginPage() {
       const response = await axios.post(`${baseURL}/api/auth/login`, {
         email,
         password,
-        // recaptchaToken,
+        recaptchaToken,
       });
 
       // --- 로그인 성공 시 추가된 로직 ---
